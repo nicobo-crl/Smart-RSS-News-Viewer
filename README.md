@@ -55,8 +55,8 @@ Follow these steps to get the application running.
 
 **1. Clone the Repository**
 ```bash
-git clone <https://github.com/nicobo-crl/Smart-RSS-News-Viewer>
-cd <Smart-RSS-News-Viewer>
+git clone https://github.com/nicobo-crl/Smart-RSS-News-Viewer
+cd Smart-RSS-News-Viewer
 ```
 
 **2. Create the Project Structure**
