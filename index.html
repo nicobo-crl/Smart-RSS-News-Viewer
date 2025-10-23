@@ -3,115 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semantic News from Tagesschau</title>
+    <!-- NEW: Simplified Title -->
+    <title>News</title>
     <style>
+        :root {
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --secondary-text-color: #bbbbbb;
+            --border-color: #444444;
+            --highlight-border-color: #ffffff;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            background-color: #f4f4f9;
-            color: #333;
+            font-family: 'Consolas', 'Menlo', 'Courier New', Courier, monospace;
+            line-height: 1.7;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            padding: 0;
         }
         .container {
-            max-width: 900px;
-            margin: auto;
-            background: #fff;
-            padding: 20px 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
+            max-width: none;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
-        h1 {
-            color: #003366;
-            text-align: center;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
+        /* NEW: Bigger Title */
+        h1 { 
+            text-align: center; 
+            border-bottom: 1px solid var(--border-color); 
+            padding: 25px 0;
+            margin: 0;
+            font-weight: normal;
+            font-size: 2em; /* Increased size */
+            letter-spacing: 4px; /* Increased spacing */
         }
-        h2 {
-            background-color: #003366;
-            color: #fff;
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-top: 40px;
-        }
-        .article {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 20px;
-            margin-bottom: 20px;
-            background: #fafafa;
-        }
-        .article h3 {
-            margin-top: 0;
-            font-size: 1.25em;
-        }
-        .article h3 a {
-            color: #0056b3;
-            text-decoration: none;
-        }
-        .article h3 a:hover {
-            text-decoration: underline;
-        }
-        .article p {
-            margin-bottom: 0;
-        }
-        /* --- NEW STYLES --- */
-        .article-image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        .article-meta {
-            font-size: 0.9em;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        /* --- END NEW STYLES --- */
-        .footer {
-            text-align: center;
+        .cluster-block {
+            padding-top: 30px;
             margin-top: 30px;
-            font-size: 0.9em;
-            color: #777;
+            border-top: 1px solid var(--border-color);
+        }
+        .cluster-block:first-of-type {
+            margin-top: 0;
+            border-top: none;
+        }
+        .content-wrapper {
+            max-width: 80ch;
+            margin: 0 auto;
+            padding: 0 25px;
+        }
+        .cluster-summary {
+            background-color: #111;
+            border: 1px solid var(--highlight-border-color);
+            padding: 25px 30px;
+            font-style: normal;
+            color: var(--text-color);
+            min-height: 40px;
+            font-size: 1.1em;
+            border-radius: 4px;
+        }
+        .summary-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .summary-content {
+            font-style: italic;
+        }
+        .articles-container { padding-bottom: 20px; }
+        .article { border: 1px solid var(--border-color); border-radius: 4px; padding: 20px; margin-top: 20px; background: #0a0a0a; }
+        .article h3 { margin-top: 0; font-size: 1.1em; font-weight: normal; }
+        .article h3 a { color: var(--text-color); text-decoration: none; }
+        .article h3 a:hover { background-color: var(--text-color); color: var(--bg-color); }
+        .article p { margin-bottom: 0; color: var(--secondary-text-color); font-size: 0.9em; }
+        .article-image { max-width: 100%; height: auto; border-radius: 3px; margin-bottom: 15px; border: 1px solid var(--border-color); }
+        .article-meta { font-size: 0.8em; color: #888; margin-bottom: 10px; }
+        .article-source { font-weight: bold; }
+        .footer { text-align: center; margin-top: 30px; padding: 20px; font-size: 0.9em; color: #777; border-top: 1px solid var(--border-color); }
+        .controls { text-align: center; padding: 20px; border-bottom: 1px solid var(--border-color); }
+        .controls button, .toggle-button {
+            padding: 10px 20px; background-color: transparent; color: var(--text-color); border: 1px solid var(--border-color);
+            border-radius: 4px; cursor: pointer; font-size: 1em; font-family: inherit;
+        }
+        .controls button:hover, .toggle-button:hover { background-color: var(--text-color); color: var(--bg-color); }
+        .toggle-button { margin-top: 20px; }
+        .loading-spinner { border: 3px solid #333; border-top: 3px solid var(--text-color); border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; margin-right: 10px; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .rainbow-text {
+            background: linear-gradient(to right, #ff8080, #ff80ff, #80ffff, #80ff80, #ffff80, #ff8080);
+            background-size: 200% auto;
+            /* NEW: Slower animation */
+            animation: rainbow-animation 10s linear infinite;
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-style: normal;
+        }
+        @keyframes rainbow-animation { to { background-position: 200% center; } }
+
+        /* NEW: Styles for the favicon list */
+        .favicon-list {
+            display: flex;
+            margin-left: 12px;
+        }
+        .favicon-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            margin-left: -8px; /* Creates an overlap effect */
+            background-color: #222; /* Fallback color */
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Semantic News Clusters from Tagesschau</h1>
+        <h1>News</h1>
+
+        <div class="controls">
+            <!-- NEW: Removed the "feeds.txt" text -->
+            <button onclick="location.reload()">Refresh & Reload Feeds</button>
+        </div>
+        
+        <script id="cluster-data" type="application/json">
+            {{ clusters | tojson | safe }}
+        </script>
 
         {% if clusters %}
             {% for cluster in clusters %}
-                <h2>{{ cluster.name }} ({{ cluster.count }} article{% if cluster.count > 1 %}s{% endif %})</h2>
-                
-                {% for item in cluster.articles %}
-                    <div class="article">
-                        
-                        <!-- NEW: Display image if it exists -->
-                        {% if item.image_url %}
-                            <img src="{{ item.image_url }}" alt="{{ item.title }}" class="article-image">
-                        {% endif %}
+                <div class="cluster-block">
+                    <div class="content-wrapper">
+                        <div class="cluster-summary">
+                            <!-- NEW: Header with favicons -->
+                            <div class="summary-header">
+                                <span class="rainbow-text">Summary</span>
+                                <div class="favicon-list">
+                                    {% for favicon in cluster.favicons %}
+                                        <img src="{{ favicon }}" class="favicon-circle" alt="source favicon" title="Source">
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <!-- Placeholder for the dynamic summary text -->
+                            <div class="summary-content" id="summary-{{ loop.index0 }}">
+                                <div class="loading-spinner"></div>
+                                <span>Loading...</span>
+                            </div>
+                        </div>
 
-                        <h3><a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
-                        
-                        <!-- NEW: Display date if it exists -->
-                        {% if item.date %}
-                            <p class="article-meta">{{ item.date }}</p>
-                        {% endif %}
-                        
-                        <p>{{ item.summary }}</p>
+                        <button class="toggle-button" onclick="toggleArticles('articles-{{ loop.index0 }}', this)">
+                            Show {{ cluster.count }} Source Article{% if cluster.count > 1 %}s{% endif %}
+                        </button>
                     </div>
-                {% endfor %}
+
+                    <div class="articles-container" id="articles-{{ loop.index0 }}" style="display: none;">
+                        <div class="content-wrapper">
+                            {% for item in cluster.articles %}
+                                <div class="article">
+                                    {% if item.image_url %}<img src="{{ item.image_url }}" alt="{{ item.title }}" class="article-image">{% endif %}
+                                    <h3><a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
+                                    <p class="article-meta">
+                                        <span class="article-source">Source: {{ item.source }}</span><br>
+                                        {% if item.date %}<span>{{ item.date }}</span>{% endif %}
+                                    </p>
+                                    <p>{{ item.summary }}</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
             {% endfor %}
         {% else %}
-            <p>Could not fetch or process news articles at the moment. Please try again later.</p>
+            <div class="content-wrapper" style="padding: 20px; border: 1px solid var(--border-color); margin-top: 20px;">
+                <h2>No Feeds Loaded</h2>
+                <p>Could not find any articles. Please check that <strong>feeds.txt</strong> exists and is not empty.</p>
+            </div>
         {% endif %}
 
         <div class="footer">
-            {% if updated_time %}
-                <p>Last updated: {{ updated_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-            {% endif %}
+            {% if updated_time %}<p>Clusters generated at: {{ updated_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>{% endif %}
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const clusterDataElement = document.getElementById('cluster-data');
+            if (!clusterDataElement) return;
+            const clusters = JSON.parse(clusterDataElement.textContent);
+            clusters.forEach((cluster, index) => {
+                fetchSummaryForCluster(index, cluster.articles);
+            });
+        });
+
+        async function fetchSummaryForCluster(clusterIndex, articles) {
+            // NEW: Target the content div specifically
+            const placeholder = document.getElementById(`summary-${clusterIndex}`);
+            if (!placeholder) return;
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ articles: articles })
+                });
+                if (!response.ok) throw new Error(`Server error: ${response.status}`);
+                const data = await response.json();
+                // NEW: Just replace the content, not the header
+                placeholder.innerHTML = data.summary.replace(/\n/g, '<br>');
+            } catch (error) {
+                console.error(`Error fetching summary for cluster ${clusterIndex}:`, error);
+                placeholder.textContent = 'Error: Could not load summary.';
+            }
+        }
+
+        function toggleArticles(containerId, buttonElement) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                buttonElement.textContent = 'Hide Source Articles';
+            } else {
+                container.style.display = 'none';
+                const articleCount = container.querySelector('.content-wrapper').children.length;
+                buttonElement.textContent = `Show ${articleCount} Source Article${articleCount > 1 ? 's' : ''}`;
+            }
+        }
+    </script>
 </body>
 </html>
