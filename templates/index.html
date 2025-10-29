@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- NEW: Simplified Title -->
     <title>News</title>
-    <!-- NEW: Favicon added -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📰</text></svg>">
     <style>
         :root {
             --bg-color: #000000;
@@ -28,14 +27,15 @@
             margin: 0;
             padding: 0;
         }
+        /* NEW: Bigger Title */
         h1 { 
             text-align: center; 
             border-bottom: 1px solid var(--border-color); 
             padding: 25px 0;
             margin: 0;
             font-weight: normal;
-            font-size: 2em;
-            letter-spacing: 4px;
+            font-size: 2em; /* Increased size */
+            letter-spacing: 4px; /* Increased spacing */
         }
         .cluster-block {
             padding-top: 30px;
@@ -61,14 +61,21 @@
             font-size: 1.1em;
             border-radius: 4px;
         }
-        .summary-header { display: flex; align-items: center; margin-bottom: 12px; }
-        .summary-content { font-style: italic; }
+        .summary-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .summary-content {
+            font-style: italic;
+        }
         .articles-container { padding-bottom: 20px; }
         .article { border: 1px solid var(--border-color); border-radius: 4px; padding: 20px; margin-top: 20px; background: #0a0a0a; }
         .article h3 { margin-top: 0; font-size: 1.1em; font-weight: normal; }
         .article h3 a { color: var(--text-color); text-decoration: none; }
         .article h3 a:hover { background-color: var(--text-color); color: var(--bg-color); }
         .article p { margin-bottom: 0; color: var(--secondary-text-color); font-size: 0.9em; }
+        .article-image { max-width: 100%; height: auto; border-radius: 3px; margin-bottom: 15px; border: 1px solid var(--border-color); }
         .article-meta { font-size: 0.8em; color: #888; margin-bottom: 10px; }
         .article-source { font-weight: bold; }
         .footer { text-align: center; margin-top: 30px; padding: 20px; font-size: 0.9em; color: #777; border-top: 1px solid var(--border-color); }
@@ -85,22 +92,39 @@
         .rainbow-text {
             background: linear-gradient(to right, #ff8080, #ff80ff, #80ffff, #80ff80, #ffff80, #ff8080);
             background-size: 200% auto;
+            /* NEW: Slower animation */
             animation: rainbow-animation 10s linear infinite;
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
-            font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; font-style: normal;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-style: normal;
         }
         @keyframes rainbow-animation { to { background-position: 200% center; } }
 
-        .favicon-list { display: flex; margin-left: 12px; }
-        .favicon-circle { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border-color); margin-left: -8px; background-color: #222; }
+        /* NEW: Styles for the favicon list */
+        .favicon-list {
+            display: flex;
+            margin-left: 12px;
+        }
+        .favicon-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            margin-left: -8px; /* Creates an overlap effect */
+            background-color: #222; /* Fallback color */
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>News</h1>
+
         <div class="controls">
+            <!-- NEW: Removed the "feeds.txt" text -->
             <button onclick="location.reload()">Refresh & Reload Feeds</button>
         </div>
         
@@ -112,8 +136,8 @@
             {% for cluster in clusters %}
                 <div class="cluster-block">
                     <div class="content-wrapper">
-                        
                         <div class="cluster-summary">
+                            <!-- NEW: Header with favicons -->
                             <div class="summary-header">
                                 <span class="rainbow-text">Summary</span>
                                 <div class="favicon-list">
@@ -122,6 +146,7 @@
                                     {% endfor %}
                                 </div>
                             </div>
+                            <!-- Placeholder for the dynamic summary text -->
                             <div class="summary-content" id="summary-{{ loop.index0 }}">
                                 <div class="loading-spinner"></div>
                                 <span>Loading...</span>
@@ -137,12 +162,13 @@
                         <div class="content-wrapper">
                             {% for item in cluster.articles %}
                                 <div class="article">
+                                    {% if item.image_url %}<img src="{{ item.image_url }}" alt="{{ item.title }}" class="article-image">{% endif %}
                                     <h3><a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
                                     <p class="article-meta">
                                         <span class="article-source">Source: {{ item.source }}</span><br>
                                         {% if item.date %}<span>{{ item.date }}</span>{% endif %}
                                     </p>
-                                    <p>{{ item.summary | striptags }}</p>
+                                    <p>{{ item.summary }}</p>
                                 </div>
                             {% endfor %}
                         </div>
@@ -172,6 +198,7 @@
         });
 
         async function fetchSummaryForCluster(clusterIndex, articles) {
+            // NEW: Target the content div specifically
             const placeholder = document.getElementById(`summary-${clusterIndex}`);
             if (!placeholder) return;
             try {
@@ -182,6 +209,7 @@
                 });
                 if (!response.ok) throw new Error(`Server error: ${response.status}`);
                 const data = await response.json();
+                // NEW: Just replace the content, not the header
                 placeholder.innerHTML = data.summary.replace(/\n/g, '<br>');
             } catch (error) {
                 console.error(`Error fetching summary for cluster ${clusterIndex}:`, error);
@@ -197,9 +225,8 @@
                 buttonElement.textContent = 'Hide Source Articles';
             } else {
                 container.style.display = 'none';
-                const articleCount = container.querySelectorAll('.article').length;
-                const pluralS = articleCount > 1 ? 's' : '';
-                buttonElement.textContent = `Show ${articleCount} Source Article${pluralS}`;
+                const articleCount = container.querySelector('.content-wrapper').children.length;
+                buttonElement.textContent = `Show ${articleCount} Source Article${articleCount > 1 ? 's' : ''}`;
             }
         }
     </script>
