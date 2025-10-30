@@ -1,0 +1,5 @@
+feedparser
+scikit-learn
+Flask
+ollama
+numpy
