@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify
 import datetime
 import ollama
 import numpy as np
-import ssl  # <-- ADD THIS LINE
+import ssl
 
 # --- !! DANGER ZONE: UNSECURE MODE !! ---
 # This line disables SSL certificate verification globally.
