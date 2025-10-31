@@ -1,16 +1,24 @@
 import feedparser
 import html
 from sklearn.cluster import AgglomerativeClustering
-# NEW: Import request and jsonify from Flask
 from flask import Flask, render_template, request, jsonify
 import datetime
 import ollama
 import numpy as np
+import ssl  # <-- ADD THIS LINE
+
+# --- !! DANGER ZONE: UNSECURE MODE !! ---
+# This line disables SSL certificate verification globally.
+# It's a workaround for 'CERTIFICATE_VERIFY_FAILED' errors.
+# Do not use this in a production environment with sensitive data.
+if hasattr(ssl, '_create_unverified_context'):
+    ssl._create_default_https_context = ssl._create_unverified_context
+# --- END OF DANGER ZONE ---
+
 
 # --- Configuration ---
 CACHE_DURATION_SECONDS = 900  # 15 minutes
 OLLAMA_EMBEDDING_MODEL = 'mxbai-embed-large:latest'
-# NEW: Define a model for generating summaries
 OLLAMA_GENERATION_MODEL = 'phi4:latest' 
 
 # --- Initialization ---
@@ -29,27 +37,51 @@ print(f"Generation model: {OLLAMA_GENERATION_MODEL}")
 
 def get_and_process_news():
     """
-    Fetches, embeds using Ollama, and clusters the news, with robust logic and heavy debugging.
+    Fetches news from a list of RSS feeds in a file, embeds using Ollama, 
+    and clusters them, with robust logic and heavy debugging.
     """
     print("\n[DEBUG] ===== Starting get_and_process_news() =====")
-    feed_url = "https://rss.dw.com/rdf/rss-en-top"
     
-    # 1. Fetching and Preprocessing
-    print(f"[DEBUG] Fetching RSS feed from: {feed_url}")
-    feed = feedparser.parse(feed_url)
-    
-    if feed.status != 200:
-        print(f"[DEBUG] CRITICAL: Error fetching feed! Status code: {feed.status}")
+    feeds_file = "feeds.txt"
+    try:
+        with open(feeds_file, "r") as f:
+            feed_urls = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        print(f"[DEBUG] CRITICAL: The file '{feeds_file}' was not found. Please create it and add RSS feed URLs.")
         return []
 
-    print(f"[DEBUG] Feed fetch successful. Found {len(feed.entries)} entries.")
-    if not feed.entries:
-        print("[DEBUG] CRITICAL: Feed is empty. Cannot process any news.")
+    if not feed_urls:
+        print(f"[DEBUG] CRITICAL: The file '{feeds_file}' is empty. No feeds to process.")
+        return []
+
+    print(f"[DEBUG] Found {len(feed_urls)} feed URLs in '{feeds_file}'.")
+
+    # This part remains the same as it correctly uses a User-Agent
+    USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
+    all_entries = []
+    for url in feed_urls:
+        print(f"[DEBUG] Fetching RSS feed from: {url}")
+        feed = feedparser.parse(url, agent=USER_AGENT)
+        
+        if feed.bozo:
+            # The SSL error should be gone now, but we keep this to detect other potential feed errors.
+            print(f"[DEBUG]   -> Warning: Bozo feed detected from {url}. The feed may be ill-formed. Bozo reason: {feed.bozo_exception}")
+
+        if feed.entries:
+            all_entries.extend(feed.entries)
+            print(f"[DEBUG]   -> Success! Found {len(feed.entries)} entries.")
+        else:
+            print(f"[DEBUG]   -> Warning: Feed from {url} is empty or failed to parse.")
+
+    print(f"\n[DEBUG] Total entries fetched from all feeds: {len(all_entries)}")
+    if not all_entries:
+        print("[DEBUG] CRITICAL: No entries found across all feeds. Cannot process any news.")
         return []
 
     news_items = []
-    for i, entry in enumerate(feed.entries):
-        print(f"\n[DEBUG] --- Processing Entry {i+1}/{len(feed.entries)} ---")
+    for i, entry in enumerate(all_entries):
+        print(f"\n[DEBUG] --- Processing Entry {i+1}/{len(all_entries)} ---")
         print(f"[DEBUG] Title: {entry.get('title', 'N/A')}")
 
         summary_text = ""
@@ -85,9 +117,12 @@ def get_and_process_news():
         print(f"[DEBUG] Image URL found: {image_url}")
 
         formatted_date = None
-        if 'published_parsed' in entry:
-            dt_obj = datetime.datetime(*entry.published_parsed[:6])
-            formatted_date = dt_obj.strftime('%d. %B %Y, %H:%M Uhr')
+        if 'published_parsed' in entry and entry.published_parsed:
+            try:
+                dt_obj = datetime.datetime(*entry.published_parsed[:6])
+                formatted_date = dt_obj.strftime('%d. %B %Y, %H:%M Uhr')
+            except Exception:
+                print("[DEBUG] Could not parse date from 'published_parsed'.")
         print(f"[DEBUG] Date found: {formatted_date}")
 
         news_items.append({
@@ -165,7 +200,6 @@ def index():
     return render_template('index.html', clusters=clusters_to_render, updated_time=cache.get("timestamp"))
 
 
-# NEW: Add the missing /summarize route
 @app.route('/summarize', methods=['POST'])
 def summarize_cluster():
     """
@@ -173,7 +207,6 @@ def summarize_cluster():
     """
     print("\n[DEBUG] ===== Received request on /summarize endpoint =====")
     
-    # 1. Get the data from the request
     data = request.get_json()
     if not data or 'articles' not in data:
         print("[DEBUG] CRITICAL: Invalid data received. 'articles' key is missing.")
@@ -182,14 +215,12 @@ def summarize_cluster():
     articles = data['articles']
     print(f"[DEBUG] Received {len(articles)} articles to summarize.")
 
-    # 2. Combine the titles and summaries into a single text block
     full_text = ""
     for article in articles:
         full_text += article['title'] + ". " + article['summary'] + "\n\n"
     
     print(f"[DEBUG] Combined text for summarization (first 150 chars): {full_text[:150]}...")
 
-    # 3. Create a prompt for the Ollama model
     prompt = f"Please summarize the following news articles into a concise paragraph. Capture the main theme and key points:\n\n{full_text}"
 
     try:
@@ -201,7 +232,6 @@ def summarize_cluster():
         summary = response['message']['content']
         print(f"[DEBUG] Received summary from Ollama: {summary[:100]}...")
         
-        # 4. Return the summary in a JSON response
         print("[DEBUG] ===== Successfully generated summary. Sending response. =====")
         return jsonify({"summary": summary})
 
