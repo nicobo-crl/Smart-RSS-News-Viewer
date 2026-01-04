@@ -44,7 +44,7 @@ Before you begin, ensure you have the following installed:
 2.  **Ollama**: You must have the [Ollama service](https://ollama.com/) installed and running on your machine.
 3.  **An Ollama Model**: You need to have pulled the model specified in the application. For this project, we use `gemma3:4b`.
     ```bash
-    ollama run gemma3:4b
+    ollama pull gemma3:4b
     ```
 
 ---
