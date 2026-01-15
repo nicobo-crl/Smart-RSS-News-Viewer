@@ -97,6 +97,16 @@
             letter-spacing: 1px;
             font-style: normal;
         }
+
+        .ai-annotation {
+        text-align: center;
+        font-size: 0.8em;
+        color: var(--secondary-text-color);
+        margin: 10px 0 25px 0;
+        letter-spacing: 0.5px;
+        font-style: italic;
+        }
+
         @keyframes rainbow-animation { to { background-position: 200% center; } }
 
         .favicon-list { display: flex; margin-left: 12px; }
@@ -109,7 +119,9 @@
 <body>
     <div class="container">
         <h1>News</h1>
-        <h2>curated by AI; double-check important infomation</h2>
+        <p class="ai-annotation">
+        This page is curated by artificial intelligence. Summaries may contain inaccuracies—verify critical information with the original sources.
+        </p>
 
         <script id="cluster-data" type="application/json">
             {{ clusters | tojson | safe }}
