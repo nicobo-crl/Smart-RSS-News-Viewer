@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- NEW: Simplified Title -->
     <title>News</title>
     <style>
         :root {
@@ -27,15 +26,14 @@
             margin: 0;
             padding: 0;
         }
-        /* NEW: Bigger Title */
         h1 { 
             text-align: center; 
             border-bottom: 1px solid var(--border-color); 
             padding: 25px 0;
             margin: 0;
             font-weight: normal;
-            font-size: 2em; /* Increased size */
-            letter-spacing: 4px; /* Increased spacing */
+            font-size: 2em;
+            letter-spacing: 4px;
         }
         .cluster-block {
             padding-top: 30px;
@@ -79,20 +77,17 @@
         .article-meta { font-size: 0.8em; color: #888; margin-bottom: 10px; }
         .article-source { font-weight: bold; }
         .footer { text-align: center; margin-top: 30px; padding: 20px; font-size: 0.9em; color: #777; border-top: 1px solid var(--border-color); }
-        .controls { text-align: center; padding: 20px; border-bottom: 1px solid var(--border-color); }
-        .controls button, .toggle-button {
+        .toggle-button {
             padding: 10px 20px; background-color: transparent; color: var(--text-color); border: 1px solid var(--border-color);
-            border-radius: 4px; cursor: pointer; font-size: 1em; font-family: inherit;
+            border-radius: 4px; cursor: pointer; font-size: 1em; font-family: inherit; margin-top: 20px;
         }
-        .controls button:hover, .toggle-button:hover { background-color: var(--text-color); color: var(--bg-color); }
-        .toggle-button { margin-top: 20px; }
+        .toggle-button:hover { background-color: var(--text-color); color: var(--bg-color); }
         .loading-spinner { border: 3px solid #333; border-top: 3px solid var(--text-color); border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; margin-right: 10px; vertical-align: middle; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         .rainbow-text {
             background: linear-gradient(to right, #ff8080, #ff80ff, #80ffff, #80ff80, #ffff80, #ff8080);
             background-size: 200% auto;
-            /* NEW: Slower animation */
             animation: rainbow-animation 10s linear infinite;
             background-clip: text;
             -webkit-background-clip: text;
@@ -104,30 +99,18 @@
         }
         @keyframes rainbow-animation { to { background-position: 200% center; } }
 
-        /* NEW: Styles for the favicon list */
-        .favicon-list {
-            display: flex;
-            margin-left: 12px;
-        }
+        .favicon-list { display: flex; margin-left: 12px; }
         .favicon-circle {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 1px solid var(--border-color);
-            margin-left: -8px; /* Creates an overlap effect */
-            background-color: #222; /* Fallback color */
+            width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border-color);
+            margin-left: -8px; background-color: #222;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>News</h1>
+        <h2>curated by AI; double-check important infomation</h2>
 
-        <div class="controls">
-            <!-- NEW: Removed the "feeds.txt" text -->
-            <button onclick="location.reload()">Refresh & Reload Feeds</button>
-        </div>
-        
         <script id="cluster-data" type="application/json">
             {{ clusters | tojson | safe }}
         </script>
@@ -137,16 +120,14 @@
                 <div class="cluster-block">
                     <div class="content-wrapper">
                         <div class="cluster-summary">
-                            <!-- NEW: Header with favicons -->
                             <div class="summary-header">
                                 <span class="rainbow-text">Summary</span>
                                 <div class="favicon-list">
                                     {% for favicon in cluster.favicons %}
-                                        <img src="{{ favicon }}" class="favicon-circle" alt="source favicon" title="Source">
+                                        <img src="{{ favicon }}" class="favicon-circle" alt="source" onerror="this.style.display='none'">
                                     {% endfor %}
                                 </div>
                             </div>
-                            <!-- Placeholder for the dynamic summary text -->
                             <div class="summary-content" id="summary-{{ loop.index0 }}">
                                 <div class="loading-spinner"></div>
                                 <span>Loading...</span>
@@ -176,14 +157,19 @@
                 </div>
             {% endfor %}
         {% else %}
-            <div class="content-wrapper" style="padding: 20px; border: 1px solid var(--border-color); margin-top: 20px;">
-                <h2>No Feeds Loaded</h2>
-                <p>Could not find any articles. Please check that <strong>feeds.txt</strong> exists and is not empty.</p>
+            <div class="content-wrapper" style="padding: 20px; border: 1px solid var(--border-color); margin-top: 20px; text-align: center;">
+                <h2>Loading News...</h2>
+                <p>Please wait. If this takes too long, check your feed list.</p>
+                <div class="loading-spinner" style="width: 30px; height: 30px;"></div>
+                <script>
+                    // If no clusters passed but page loaded, autoreload once after 5s to check if cache filled
+                    setTimeout(() => window.location.reload(), 5000);
+                </script>
             </div>
         {% endif %}
 
         <div class="footer">
-            {% if updated_time %}<p>Clusters generated at: {{ updated_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>{% endif %}
+            {% if updated_time %}<p>Last updated: {{ updated_time.strftime('%H:%M') }}</p>{% endif %}
         </div>
     </div>
 
@@ -192,13 +178,14 @@
             const clusterDataElement = document.getElementById('cluster-data');
             if (!clusterDataElement) return;
             const clusters = JSON.parse(clusterDataElement.textContent);
+            if (!clusters) return;
+            
             clusters.forEach((cluster, index) => {
                 fetchSummaryForCluster(index, cluster.articles);
             });
         });
 
         async function fetchSummaryForCluster(clusterIndex, articles) {
-            // NEW: Target the content div specifically
             const placeholder = document.getElementById(`summary-${clusterIndex}`);
             if (!placeholder) return;
             try {
@@ -209,11 +196,10 @@
                 });
                 if (!response.ok) throw new Error(`Server error: ${response.status}`);
                 const data = await response.json();
-                // NEW: Just replace the content, not the header
                 placeholder.innerHTML = data.summary.replace(/\n/g, '<br>');
             } catch (error) {
                 console.error(`Error fetching summary for cluster ${clusterIndex}:`, error);
-                placeholder.textContent = 'Error: Could not load summary.';
+                placeholder.textContent = 'Could not load summary.';
             }
         }
 
