@@ -4,4 +4,3 @@ https://rss.dw.com/rdf/rss-en-top
 https://moxie.foxnews.com/google-publisher/world.xml
 http://associated-press.s3-website-us-east-1.amazonaws.com/topnews.xml
 https://feeds.bbci.co.uk/news/rss.xml
-https://www.reddit.com/r/worldnews.rss
