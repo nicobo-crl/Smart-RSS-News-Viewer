@@ -24,15 +24,10 @@ The application features a minimalist, responsive, black-and-white UI designed f
 
 ---
 
-## Tech Stack
+## Demo
 
-- **Backend**: Python 3, Flask
-- **AI / Machine Learning**:
-  - `sentence-transformers`: For generating semantic vector embeddings.
-  - `scikit-learn`: For hierarchical agglomerative clustering.
-  - **Ollama**: To serve the local Large Language Model.
-- **Data Fetching**: `feedparser`
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript (for API calls)
+Try it out here: http://news.boehringernico.de
+You may need to wait a minute for the server to prepare the news.
 
 ---
 
@@ -135,3 +130,4 @@ You need two terminal windows for this.
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
+
