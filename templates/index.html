@@ -1,128 +1,197 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>News</title>
+    <title>AI News Reader</title>
     <style>
         :root {
             --bg-color: #000000;
             --text-color: #ffffff;
             --secondary-text-color: #bbbbbb;
-            --border-color: #444444;
-            --highlight-border-color: #ffffff;
+            --border-color: #333333;
+            --highlight-border-color: #555555;
+            --accent-color: #fff;
         }
         body {
             font-family: 'Consolas', 'Menlo', 'Courier New', Courier, monospace;
-            line-height: 1.7;
+            line-height: 1.6;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
             padding: 0;
         }
         .container {
-            max-width: none;
             width: 100%;
-            margin: 0;
+            max-width: 900px;
+            margin: 0 auto;
             padding: 0;
         }
         h1 { 
             text-align: center; 
             border-bottom: 1px solid var(--border-color); 
-            padding: 25px 0;
+            padding: 30px 0;
             margin: 0;
             font-weight: normal;
-            font-size: 2em;
-            letter-spacing: 4px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
+        .ai-annotation {
+            text-align: center;
+            font-size: 0.75em;
+            color: #666;
+            margin: 15px 20px 40px 20px;
+            font-style: italic;
+        }
+
+        /* --- Cluster Block --- */
         .cluster-block {
-            padding-top: 30px;
-            margin-top: 30px;
-            border-top: 1px solid var(--border-color);
+            margin-bottom: 60px;
+            padding: 0 20px;
+            animation: fadeIn 0.5s ease-in;
         }
-        .cluster-block:first-of-type {
-            margin-top: 0;
-            border-top: none;
-        }
-        .content-wrapper {
-            max-width: 80ch;
-            margin: 0 auto;
-            padding: 0 25px;
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- Summary Box --- */
         .cluster-summary {
-            background-color: #111;
+            background-color: #0a0a0a;
             border: 1px solid var(--highlight-border-color);
-            padding: 25px 30px;
-            font-style: normal;
-            color: var(--text-color);
-            min-height: 40px;
-            font-size: 1.1em;
-            border-radius: 4px;
+            padding: 25px;
+            border-radius: 6px;
+            position: relative;
         }
         .summary-header {
             display: flex;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
+            font-size: 0.85em;
         }
-        .summary-content {
-            font-style: italic;
-        }
-        .articles-container { padding-bottom: 20px; }
-        .article { border: 1px solid var(--border-color); border-radius: 4px; padding: 20px; margin-top: 20px; background: #0a0a0a; }
-        .article h3 { margin-top: 0; font-size: 1.1em; font-weight: normal; }
-        .article h3 a { color: var(--text-color); text-decoration: none; }
-        .article h3 a:hover { background-color: var(--text-color); color: var(--bg-color); }
-        .article p { margin-bottom: 0; color: var(--secondary-text-color); font-size: 0.9em; }
-        .article-image { max-width: 100%; height: auto; border-radius: 3px; margin-bottom: 15px; border: 1px solid var(--border-color); }
-        .article-meta { font-size: 0.8em; color: #888; margin-bottom: 10px; }
-        .article-source { font-weight: bold; }
-        .footer { text-align: center; margin-top: 30px; padding: 20px; font-size: 0.9em; color: #777; border-top: 1px solid var(--border-color); }
-        .toggle-button {
-            padding: 10px 20px; background-color: transparent; color: var(--text-color); border: 1px solid var(--border-color);
-            border-radius: 4px; cursor: pointer; font-size: 1em; font-family: inherit; margin-top: 20px;
-        }
-        .toggle-button:hover { background-color: var(--text-color); color: var(--bg-color); }
-        .loading-spinner { border: 3px solid #333; border-top: 3px solid var(--text-color); border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; margin-right: 10px; vertical-align: middle; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         .rainbow-text {
-            background: linear-gradient(to right, #ff8080, #ff80ff, #80ffff, #80ff80, #ffff80, #ff8080);
-            background-size: 200% auto;
-            animation: rainbow-animation 10s linear infinite;
-            background-clip: text;
+            background: linear-gradient(to right, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            background-size: 300% auto;
+            animation: rainbow 5s linear infinite;
             -webkit-background-clip: text;
+            background-clip: text;
             color: transparent;
-            font-size: 0.8em;
+            font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
-            font-style: normal;
+            margin-right: 15px;
+        }
+        @keyframes rainbow { 
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
-        .ai-annotation {
-        text-align: center;
-        font-size: 0.8em;
-        color: var(--secondary-text-color);
-        margin: 10px 0 25px 0;
-        letter-spacing: 0.5px;
-        font-style: italic;
-        }
-
-        @keyframes rainbow-animation { to { background-position: 200% center; } }
-
-        .favicon-list { display: flex; margin-left: 12px; }
+        /* Favicons */
+        .favicon-list { display: flex; align-items: center; }
         .favicon-circle {
-            width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border-color);
-            margin-left: -8px; background-color: #222;
+            width: 18px; height: 18px; 
+            border-radius: 50%; 
+            border: 2px solid #000;
+            margin-left: -8px; 
+            background-color: #222;
+        }
+        .favicon-circle:first-child { margin-left: 0; }
+
+        .summary-content {
+            font-size: 1.1em;
+            line-height: 1.8;
+            color: #ddd;
+        }
+        .summary-content .loading-spinner {
+            display: inline-block;
+            width: 12px; height: 12px;
+            border: 2px solid #555;
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Toggle Button --- */
+        .toggle-wrapper { margin-top: 15px; }
+        .toggle-button {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85em;
+            padding: 5px 0;
+            transition: color 0.2s;
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 4px;
+        }
+        .toggle-button:hover { color: #fff; }
+
+        /* --- Articles List --- */
+        .articles-container {
+            margin-top: 20px;
+            border-left: 1px solid var(--border-color);
+            padding-left: 20px;
+            margin-left: 10px;
+            display: none; /* Hidden by default */
+        }
+        .article {
+            margin-bottom: 30px;
+        }
+        .article h3 {
+            margin: 0 0 5px 0;
+            font-size: 1em;
+            font-weight: bold;
+        }
+        .article h3 a {
+            color: var(--text-color);
+            text-decoration: none;
+            border-bottom: 1px solid #333;
+            transition: border-color 0.2s;
+        }
+        .article h3 a:hover { border-color: #fff; }
+        
+        .article-meta {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .article-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            border: 1px solid #333;
+            margin: 10px 0;
+            display: block;
+        }
+        .article p {
+            font-size: 0.9em;
+            color: #aaa;
+            margin: 0;
+        }
+
+        /* --- Footer --- */
+        .footer {
+            text-align: center;
+            padding: 40px;
+            font-size: 0.8em;
+            color: #444;
+            border-top: 1px solid var(--border-color);
+            margin-top: 40px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>News</h1>
+        <h1>News Feed</h1>
         <p class="ai-annotation">
-        This page is curated by artificial intelligence. Summaries may contain inaccuracies—verify critical information with the original sources.
+            Summaries generated by local AI. Information may be approximate.
         </p>
 
+        <!-- Hidden Data Block for JS -->
         <script id="cluster-data" type="application/json">
             {{ clusters | tojson | safe }}
         </script>
@@ -130,58 +199,64 @@
         {% if clusters %}
             {% for cluster in clusters %}
                 <div class="cluster-block">
-                    <div class="content-wrapper">
-                        <div class="cluster-summary">
-                            <div class="summary-header">
-                                <span class="rainbow-text">Summary</span>
-                                <div class="favicon-list">
-                                    {% for favicon in cluster.favicons %}
-                                        <img src="{{ favicon }}" class="favicon-circle" alt="source" onerror="this.style.display='none'">
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <div class="summary-content" id="summary-{{ loop.index0 }}">
-                                <div class="loading-spinner"></div>
-                                <span>Loading...</span>
+                    <!-- AI Summary Box -->
+                    <div class="cluster-summary">
+                        <div class="summary-header">
+                            <span class="rainbow-text">AI Summary</span>
+                            <div class="favicon-list">
+                                {% for favicon in cluster.favicons %}
+                                    <img src="{{ favicon }}" class="favicon-circle" alt="" onerror="this.style.display='none'">
+                                {% endfor %}
                             </div>
                         </div>
+                        
+                        <div class="summary-content" id="summary-{{ loop.index0 }}">
+                            <div class="loading-spinner"></div>
+                            <span>Generating analysis...</span>
+                        </div>
+                    </div>
 
-                        <button class="toggle-button" onclick="toggleArticles('articles-{{ loop.index0 }}', this)">
-                            Show {{ cluster.count }} Source Article{% if cluster.count > 1 %}s{% endif %}
+                    <!-- Toggle Source Articles -->
+                    <div class="toggle-wrapper">
+                        <button class="toggle-button" onclick="toggleArticles('articles-{{ loop.index0 }}', this, {{ cluster.count }})">
+                            [+] Show {{ cluster.count }} Source Article{% if cluster.count > 1 %}s{% endif %}
                         </button>
                     </div>
 
-                    <div class="articles-container" id="articles-{{ loop.index0 }}" style="display: none;">
-                        <div class="content-wrapper">
-                            {% for item in cluster.articles %}
-                                <div class="article">
-                                    {% if item.image_url %}<img src="{{ item.image_url }}" alt="{{ item.title }}" class="article-image">{% endif %}
-                                    <h3><a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
-                                    <p class="article-meta">
-                                        <span class="article-source">Source: {{ item.source }}</span><br>
-                                        {% if item.date %}<span>{{ item.date }}</span>{% endif %}
-                                    </p>
-                                    <p>{{ item.summary }}</p>
+                    <!-- Hidden Articles List -->
+                    <div class="articles-container" id="articles-{{ loop.index0 }}">
+                        {% for item in cluster.articles %}
+                            <div class="article">
+                                {% if item.image_url %}
+                                    <img src="{{ item.image_url }}" alt="Article Image" class="article-image">
+                                {% endif %}
+                                
+                                <h3><a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
+                                
+                                <div class="article-meta">
+                                    {{ item.source }} &bull; {{ item.date }}
                                 </div>
-                            {% endfor %}
-                        </div>
+                                
+                                <p>{{ item.summary }}</p>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
             {% endfor %}
         {% else %}
-            <div class="content-wrapper" style="padding: 20px; border: 1px solid var(--border-color); margin-top: 20px; text-align: center;">
-                <h2>Loading News...</h2>
-                <p>Please wait. If this takes too long, check your feed list.</p>
-                <div class="loading-spinner" style="width: 30px; height: 30px;"></div>
-                <script>
-                    // If no clusters passed but page loaded, autoreload once after 5s to check if cache filled
-                    setTimeout(() => window.location.reload(), 5000);
-                </script>
+            <!-- This state should theoretically not be reached due to loading.html, 
+                 but keeping a minimal fallback is good practice. -->
+            <div style="text-align: center; padding: 50px;">
+                <p>No news found.</p>
             </div>
         {% endif %}
 
         <div class="footer">
-            {% if updated_time %}<p>Last updated: {{ updated_time.strftime('%H:%M') }}</p>{% endif %}
+            {% if updated_time %}
+                Data Cached: {{ updated_time.strftime('%H:%M:%S') }}
+            {% else %}
+                Live
+            {% endif %}
         </div>
     </div>
 
@@ -189,42 +264,52 @@
         document.addEventListener('DOMContentLoaded', () => {
             const clusterDataElement = document.getElementById('cluster-data');
             if (!clusterDataElement) return;
-            const clusters = JSON.parse(clusterDataElement.textContent);
-            if (!clusters) return;
             
-            clusters.forEach((cluster, index) => {
-                fetchSummaryForCluster(index, cluster.articles);
-            });
+            try {
+                const clusters = JSON.parse(clusterDataElement.textContent);
+                if (clusters) {
+                    clusters.forEach((cluster, index) => {
+                        fetchSummaryForCluster(index, cluster.articles);
+                    });
+                }
+            } catch (e) {
+                console.error("Error parsing cluster data", e);
+            }
         });
 
         async function fetchSummaryForCluster(clusterIndex, articles) {
             const placeholder = document.getElementById(`summary-${clusterIndex}`);
             if (!placeholder) return;
+            
             try {
                 const response = await fetch('/summarize', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ articles: articles })
                 });
+                
                 if (!response.ok) throw new Error(`Server error: ${response.status}`);
+                
                 const data = await response.json();
+                // Replace newlines with <br> for formatting
                 placeholder.innerHTML = data.summary.replace(/\n/g, '<br>');
+                
             } catch (error) {
                 console.error(`Error fetching summary for cluster ${clusterIndex}:`, error);
-                placeholder.textContent = 'Could not load summary.';
+                placeholder.innerHTML = '<span style="color:#666;">Summary unavailable.</span>';
             }
         }
 
-        function toggleArticles(containerId, buttonElement) {
+        function toggleArticles(containerId, buttonElement, count) {
             const container = document.getElementById(containerId);
             if (!container) return;
-            if (container.style.display === 'none') {
-                container.style.display = 'block';
-                buttonElement.textContent = 'Hide Source Articles';
-            } else {
+
+            if (container.style.display === 'block') {
                 container.style.display = 'none';
-                const articleCount = container.querySelector('.content-wrapper').children.length;
-                buttonElement.textContent = `Show ${articleCount} Source Article${articleCount > 1 ? 's' : ''}`;
+                buttonElement.textContent = `[+] Show ${count} Source Article${count > 1 ? 's' : ''}`;
+            } else {
+                container.style.display = 'block';
+                buttonElement.textContent = `[-] Hide Sources`;
             }
         }
     </script>

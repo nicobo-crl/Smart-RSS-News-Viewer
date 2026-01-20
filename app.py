@@ -9,6 +9,9 @@ import numpy as np
 import ssl
 import hashlib
 import json
+import threading
+import time
+import copy
 
 # --- !! DANGER ZONE: UNSECURE MODE !! ---
 if hasattr(ssl, '_create_unverified_context'):
@@ -16,26 +19,26 @@ if hasattr(ssl, '_create_unverified_context'):
 # --- END OF DANGER ZONE ---
 
 # --- Configuration ---
-CACHE_DURATION_SECONDS = 3600  # 1 Hour
+UPDATE_INTERVAL_SECONDS = 3600  # 1 Hour
 OLLAMA_EMBEDDING_MODEL = 'mxbai-embed-large:latest'
 OLLAMA_GENERATION_MODEL = 'gemma3:4b' 
 
 # --- Initialization ---
 app = Flask(__name__)
 
-# Global cache objects
-cache = {
-    "data": None,
-    "timestamp": None
+# Global Store
+# We use a lock to ensure we don't read data while it's being written
+data_lock = threading.Lock()
+global_store = {
+    "clusters": None,      # Stores the processed clusters
+    "last_updated": None,  # Timestamp
+    "is_processing": False # Flag to show status on loading screen
 }
 summary_cache = {} 
 
 print("--- System Startup ---")
-print(f"Embedding Engine: Ollama ({OLLAMA_EMBEDDING_MODEL})")
-print(f"Summarization Engine: Ollama ({OLLAMA_GENERATION_MODEL})")
 
 def get_favicon(url):
-    """ Simple helper to get a favicon URL from a feed link """
     try:
         from urllib.parse import urlparse
         domain = urlparse(url).netloc
@@ -43,32 +46,37 @@ def get_favicon(url):
     except:
         return ""
 
-def get_and_process_news():
-    print("\n[DEBUG] ===== Starting get_and_process_news() =====")
+def process_news_workflow():
+    """ 
+    This function performs the heavy lifting: 
+    Fetching -> Embedding -> Clustering 
+    """
+    print(f"\n[{datetime.datetime.now()}] Starting Background Update...")
     
+    with data_lock:
+        global_store["is_processing"] = True
+
     feeds_file = "feeds.txt"
     try:
         with open(feeds_file, "r") as f:
             feed_urls = [line.strip() for line in f if line.strip()]
     except FileNotFoundError:
-        print(f"[DEBUG] CRITICAL: '{feeds_file}' not found.")
-        return []
+        print(f"CRITICAL: '{feeds_file}' not found.")
+        return None
 
     if not feed_urls:
-        return []
+        return None
 
+    # 1. Fetch
     USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     cutoff_date = datetime.datetime.utcnow() - timedelta(days=7)
-    
     all_entries = []
-    # Map to store which feed domain an entry came from
     feed_domain_map = {} 
 
     for url in feed_urls:
         try:
             feed = feedparser.parse(url, agent=USER_AGENT)
             if feed.entries:
-                # Capture domain for favicon
                 domain_favicon = get_favicon(url)
                 for entry in feed.entries:
                     feed_domain_map[entry.link] = domain_favicon
@@ -76,37 +84,31 @@ def get_and_process_news():
         except Exception as e:
             print(f"Error fetching {url}: {e}")
 
-    if not all_entries:
-        return []
-
+    # 2. Filter & Format
     news_items = []
     seen_links = set()
 
     for entry in all_entries:
-        if entry.link in seen_links:
-            continue
+        if entry.link in seen_links: continue
         seen_links.add(entry.link)
 
-        if not hasattr(entry, 'published_parsed') or not entry.published_parsed:
-            continue
-        try:
-            article_date = datetime.datetime(*entry.published_parsed[:6])
-            if article_date < cutoff_date:
-                continue
-        except Exception:
-            continue
+        # Date Check
+        if hasattr(entry, 'published_parsed') and entry.published_parsed:
+            try:
+                article_date = datetime.datetime(*entry.published_parsed[:6])
+                if article_date < cutoff_date: continue
+            except: continue
+        else:
+            continue # Skip if no date
 
+        # Text Extraction
         summary_text = ""
-        if hasattr(entry, 'summary') and entry.summary:
-            summary_text = entry.summary
-        elif hasattr(entry, 'description') and entry.description:
-            summary_text = entry.description
-
+        if hasattr(entry, 'summary') and entry.summary: summary_text = entry.summary
+        elif hasattr(entry, 'description') and entry.description: summary_text = entry.description
+        
         summary = html.unescape(summary_text)
         title = html.unescape(entry.title)
-
-        if not summary:
-            continue
+        if not summary: continue
 
         image_url = None
         if 'media_content' in entry and entry.media_content:
@@ -115,9 +117,7 @@ def get_and_process_news():
                     image_url = media['url']
                     break
         
-        formatted_date = article_date.strftime('%d. %B %Y, %H:%M Uhr')
-        
-        # Get source name nicely
+        # Source Name
         source_name = "Unknown"
         if hasattr(entry, 'source') and hasattr(entry.source, 'title'):
              source_name = entry.source.title
@@ -130,29 +130,31 @@ def get_and_process_news():
             "link": entry.link,
             "summary": summary,
             "image_url": image_url,
-            "date": formatted_date,
+            "date": article_date.strftime('%d. %B %Y, %H:%M Uhr'),
             "source": source_name,
             "favicon": feed_domain_map.get(entry.link, "")
         })
 
     if len(news_items) < 2:
+        print("Not enough news items to cluster.")
         return []
 
-    # --- Embedding ---
+    # 3. Embed
+    print(f"Embedding {len(news_items)} articles...")
     texts_to_embed = [f"{item['title']}. {item['summary']}" for item in news_items]
-    
     embeddings = []
     try:
-        for i, text in enumerate(texts_to_embed):
-            clean_text = text[:4000] 
-            response = ollama.embeddings(model=OLLAMA_EMBEDDING_MODEL, prompt=clean_text)
+        for text in texts_to_embed:
+            # Truncate to avoid context limit errors
+            response = ollama.embeddings(model=OLLAMA_EMBEDDING_MODEL, prompt=text[:4000])
             embeddings.append(response["embedding"])
         embeddings = np.array(embeddings)
     except Exception as e:
-        print(f"[DEBUG] CRITICAL: Ollama embedding failed: {e}")
-        return []
+        print(f"Embedding failed: {e}")
+        return None
 
-    # --- Clustering ---
+    # 4. Cluster
+    print("Clustering...")
     clustering_model = AgglomerativeClustering(
         n_clusters=None, 
         metric='cosine', 
@@ -169,34 +171,76 @@ def get_and_process_news():
     
     output_data = []
     for i, cluster_items in enumerate(sorted_clusters):
-        # Gather unique favicons for the cluster header
         unique_favicons = list(set([item['favicon'] for item in cluster_items if item['favicon']]))
-        
         output_data.append({
             "name": f"Topic {i+1}",
             "count": len(cluster_items),
             "articles": cluster_items,
-            "favicons": unique_favicons[:5] # Limit to 5 icons per header
+            "favicons": unique_favicons[:5]
         })
     
+    print(f"Update Complete. {len(output_data)} topics found.")
     return output_data
+
+def background_scheduler():
+    """ Runs in a separate thread. Updates data, then sleeps. """
+    while True:
+        try:
+            new_data = process_news_workflow()
+            
+            if new_data is not None:
+                with data_lock:
+                    global_store["clusters"] = new_data
+                    global_store["last_updated"] = datetime.datetime.now()
+                    # We clear summary cache on new data so we don't show old summaries for new topics
+                    summary_cache.clear()
+                    global_store["is_processing"] = False
+            else:
+                # If update failed, we keep old data but turn off processing flag
+                with data_lock:
+                    global_store["is_processing"] = False
+                    
+        except Exception as e:
+            print(f"Background worker crashed: {e}")
+            with data_lock:
+                global_store["is_processing"] = False
+        
+        # Sleep for 1 hour before next update
+        time.sleep(UPDATE_INTERVAL_SECONDS)
+
+# Start the background thread immediately
+t = threading.Thread(target=background_scheduler, daemon=True)
+t.start()
+
+# --- Routes ---
 
 @app.route('/')
 def index():
-    now = datetime.datetime.now()
-    
-    # Cache Logic: If valid data exists, serve it immediately.
-    if cache["data"] and cache["timestamp"] and (now - cache["timestamp"]).total_seconds() < CACHE_DURATION_SECONDS:
-        clusters_to_render = cache["data"]
+    # Check if we have data ready
+    with data_lock:
+        data = global_store["clusters"]
+        updated_at = global_store["last_updated"]
+
+    if data is None:
+        # Initial Cold Start: Show Loading Screen
+        return render_template('loading.html')
     else:
-        fresh_data = get_and_process_news()
-        if fresh_data:
-            cache["data"] = fresh_data
-            cache["timestamp"] = now
-            summary_cache.clear() 
-        clusters_to_render = cache.get("data")
-    
-    return render_template('index.html', clusters=clusters_to_render, updated_time=cache.get("timestamp"))
+        # Hot Cache: Show News Immediately
+        return render_template('index.html', clusters=data, updated_time=updated_at)
+
+@app.route('/status')
+def status():
+    """ Endpoint for the loading screen to poll """
+    with data_lock:
+        ready = global_store["clusters"] is not None
+    return jsonify({"ready": ready})
+
+@app.route('/force_refresh')
+def force_refresh():
+    """ Optional: Trigger manual refresh (resets thread loop essentially) """
+    # In a simple thread model, forcing is tricky without complex logic. 
+    # For now, we just tell the user to wait for the next cycle or restart container.
+    return "Background refresh is automatic. Restart container to force immediate update."
 
 @app.route('/summarize', methods=['POST'])
 def summarize_cluster():
@@ -208,7 +252,6 @@ def summarize_cluster():
     article_links = sorted([a['link'] for a in articles])
     signature = hashlib.md5(json.dumps(article_links).encode('utf-8')).hexdigest()
 
-    # Instant return if cached
     if signature in summary_cache:
         return jsonify({"summary": summary_cache[signature]})
 
@@ -216,10 +259,9 @@ def summarize_cluster():
     for article in articles:
         full_text += f"- {article['title']}: {article['summary'][:300]}\n"
     
-    # --- UPDATED PROMPT ---
     prompt = (
         f"Summarize the following news articles into a single, concise paragraph. "
-        f"Do not use introductory phrases like 'Here is a summary', 'The articles discuss', or 'In this text'. "
+        f"Do not use introductory phrases like 'Here is a summary'. "
         f"Start directly with the main actor, event, or fact.\n\n"
         f"{full_text}"
     )

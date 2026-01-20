@@ -3,3 +3,4 @@ feedparser
 scikit-learn
 ollama
 numpy
+apscheduler
