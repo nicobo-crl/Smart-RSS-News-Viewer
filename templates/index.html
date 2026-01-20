@@ -87,15 +87,13 @@
         /* Favicons */
         .favicon-list { display: flex; align-items: center; }
         .favicon-circle {
-            width: 18px; 
-            height: 18px; 
+            width: 18px; height: 18px; 
             border-radius: 50%; 
             border: 2px solid #555;
             margin-left: -6px; 
-            /* White background ensures transparent black logos are visible */
             background-color: #ffffff; 
             object-fit: contain;
-            padding: 1px; /* Small padding so logo doesn't touch border */
+            padding: 1px;
         }
         .favicon-circle:first-child { margin-left: 0; }
 
@@ -143,6 +141,19 @@
         .article {
             margin-bottom: 30px;
         }
+        
+        /* Updated Image Styling */
+        .article-image {
+            width: 100%;
+            max-height: 400px; /* Prevents extremely tall images */
+            object-fit: cover; /* Crops nicely */
+            border-radius: 6px;
+            border: 1px solid #333;
+            margin-bottom: 15px;
+            display: block;
+            background-color: #111;
+        }
+
         .article h3 {
             margin: 0 0 5px 0;
             font-size: 1em;
@@ -162,14 +173,6 @@
             margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-        }
-        .article-image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            border: 1px solid #333;
-            margin: 10px 0;
-            display: block;
         }
         .article p {
             font-size: 0.9em;
@@ -231,14 +234,15 @@
                     <div class="articles-container" id="articles-{{ loop.index0 }}">
                         {% for item in cluster.articles %}
                             <div class="article">
+                                <!-- Image Display Logic -->
                                 {% if item.image_url %}
-                                    <img src="{{ item.image_url }}" alt="Article Image" class="article-image">
+                                    <img src="{{ item.image_url }}" alt="News Image" class="article-image" onerror="this.style.display='none'">
                                 {% endif %}
                                 
                                 <h3><a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a></h3>
                                 
                                 <div class="article-meta">
-                                    <img src="{{ item.favicon }}" style="width:12px; height:12px; vertical-align:middle; margin-right:5px; background:#fff; border-radius:50%;" onerror="this.style.display='none'">
+                                    <img src="{{ item.favicon }}" style="width:12px; height:12px; vertical-align:middle; margin-right:5px; background:#fff; border-radius:50%; padding:0.5px;" onerror="this.style.display='none'">
                                     {{ item.source }} &bull; {{ item.date }}
                                 </div>
                                 

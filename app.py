@@ -42,14 +42,43 @@ def get_favicon(url):
     try:
         parsed = urlparse(url)
         domain = parsed.netloc
-        # Fallback if netloc is empty (rare)
         if not domain:
             path_parts = parsed.path.split('/')
             if path_parts: domain = path_parts[0]
-            
         return f"https://www.google.com/s2/favicons?domain={domain}&sz=64"
     except:
         return ""
+
+def extract_image_url(entry):
+    """ Aggressively tries to find an image in the RSS entry """
+    if 'media_content' in entry:
+        for media in entry.media_content:
+            if (media.get('medium') == 'image' or media.get('type', '').startswith('image/')):
+                if 'url' in media: return media['url']
+
+    if 'media_thumbnail' in entry:
+        thumbnails = entry.media_thumbnail
+        if isinstance(thumbnails, list) and len(thumbnails) > 0:
+            return thumbnails[0].get('url')
+
+    if 'links' in entry:
+        for link in entry.links:
+            if link.get('rel') == 'enclosure' and link.get('type', '').startswith('image/'):
+                return link['href']
+    
+    content = ""
+    if 'summary' in entry: content = entry.summary
+    elif 'description' in entry: content = entry.description
+    
+    if '<img' in content:
+        try:
+            start = content.find('src="') + 5
+            if start > 4:
+                end = content.find('"', start)
+                if end > start: return content[start:end]
+        except: pass
+
+    return None
 
 def process_news_workflow():
     print(f"\n[{datetime.datetime.now()}] Starting Background Update...")
@@ -105,14 +134,7 @@ def process_news_workflow():
         title = html.unescape(entry.title)
         if not summary: continue
 
-        image_url = None
-        if 'media_content' in entry and entry.media_content:
-            for media in entry.media_content:
-                if 'medium' in media and media['medium'] == 'image' and 'url' in media:
-                    image_url = media['url']
-                    break
-        
-        # Source Name
+        image_url = extract_image_url(entry)
         source_name = "Unknown"
         if hasattr(entry, 'source') and hasattr(entry.source, 'title'):
              source_name = entry.source.title
@@ -126,7 +148,6 @@ def process_news_workflow():
             "image_url": image_url,
             "date": article_date.strftime('%d. %B %Y, %H:%M Uhr'),
             "source": source_name,
-            # Generate favicon from the specific article link, not the feed URL
             "favicon": get_favicon(entry.link)
         })
 
@@ -134,18 +155,31 @@ def process_news_workflow():
         print("Not enough news items to cluster.")
         return []
 
-    # 3. Embed
+    # 3. Embed (With Robust Error Handling)
     print(f"Embedding {len(news_items)} articles...")
-    texts_to_embed = [f"{item['title']}. {item['summary']}" for item in news_items]
+    
+    valid_items = []
     embeddings = []
-    try:
-        for text in texts_to_embed:
-            response = ollama.embeddings(model=OLLAMA_EMBEDDING_MODEL, prompt=text[:4000])
+    
+    for item in news_items:
+        text = f"{item['title']}. {item['summary']}"
+        # CRITICAL FIX: Reduced from 4000 to 1500 to fit context window
+        clean_text = text[:1500] 
+        
+        try:
+            response = ollama.embeddings(model=OLLAMA_EMBEDDING_MODEL, prompt=clean_text)
             embeddings.append(response["embedding"])
-        embeddings = np.array(embeddings)
-    except Exception as e:
-        print(f"Embedding failed: {e}")
+            valid_items.append(item) # Only keep items that succeeded
+        except Exception as e:
+            print(f"Warning: Failed to embed '{item['title']}': {e}")
+            continue
+
+    if not embeddings:
+        print("No embeddings generated. Aborting.")
         return None
+
+    embeddings = np.array(embeddings)
+    print(f"Successfully embedded {len(valid_items)} articles.")
 
     # 4. Cluster
     print("Clustering...")
@@ -159,7 +193,7 @@ def process_news_workflow():
 
     clustered_news = {}
     for index, cluster_id in enumerate(cluster_assignments):
-        clustered_news.setdefault(cluster_id, []).append(news_items[index])
+        clustered_news.setdefault(cluster_id, []).append(valid_items[index])
 
     sorted_clusters = sorted(clustered_news.values(), key=len, reverse=True)
     
