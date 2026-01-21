@@ -16,19 +16,9 @@ Try it out here: **[https://news.boehringernico.de](http://news.boehringernico.d
 -   **Multi-Feed Aggregation**: Gathers news from an unlimited number of RSS feeds defined in a simple `feeds.txt` file.
 -   **Semantic Clustering**: Uses `sentence-transformers` to understand article meaning and groups them into coherent topics (e.g., grouping 5 different articles about the same election).
 -   **AI-Powered Summarization**: Uses a local LLM (Gemma 3) via Ollama to generate a unique, single-sentence summary for each cluster.
--   **Visual Masonry Layout**: Expands news topics into a beautiful, Pinterest-style image collage.
 -   **Zero-Wait Caching**: A background worker fetches and processes news every hour. Users are served the latest cached version instantly.
 -   **Robust Image Extraction**: Aggressively finds images from various RSS metadata standards (Media content, Enclosures, Thumbnails).
 -   **Self-Hosted & Private**: All processing happens on your local machine or server. No data is sent to external cloud services.
-
----
-
-## Prerequisites
-
-To run this project easily, you only need:
-
-1.  **Docker** and **Docker Compose** installed on your machine.
-2.  *(Optional)* Git to clone the repository.
 
 ---
 
@@ -109,4 +99,5 @@ If you prefer to run this directly on your host machine (Mac/Windows/Linux):
 ## License
 
 This project is licensed under the MIT License.
+
 
