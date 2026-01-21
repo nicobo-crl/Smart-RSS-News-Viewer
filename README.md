@@ -14,7 +14,6 @@ Try it out here: **[https://news.boehringernico.de](http://news.boehringernico.d
 ## Key Features
 
 -   **Multi-Feed Aggregation**: Gathers news from an unlimited number of RSS feeds defined in a simple `feeds.txt` file.
--   **Semantic Clustering**: Uses `sentence-transformers` to understand article meaning and groups them into coherent topics (e.g., grouping 5 different articles about the same election).
 -   **AI-Powered Summarization**: Uses a local LLM (Gemma 3) via Ollama to generate a unique, single-sentence summary for each cluster.
 -   **Zero-Wait Caching**: A background worker fetches and processes news every hour. Users are served the latest cached version instantly.
 -   **Robust Image Extraction**: Aggressively finds images from various RSS metadata standards (Media content, Enclosures, Thumbnails).
@@ -99,5 +98,6 @@ If you prefer to run this directly on your host machine (Mac/Windows/Linux):
 ## License
 
 This project is licensed under the MIT License.
+
 
 
