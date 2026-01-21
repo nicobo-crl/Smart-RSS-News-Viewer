@@ -1,5 +1,6 @@
 # AI-Powered News Summarizer
 
+
 An intelligent, self-hosted web application that fetches articles from multiple RSS feeds, uses semantic clustering to group them by topic, and leverages a local Large Language Model (LLM) via Ollama to generate a concise summary for each topic.
 ---
 
@@ -108,3 +109,4 @@ If you prefer to run this directly on your host machine (Mac/Windows/Linux):
 ## License
 
 This project is licensed under the MIT License.
+
