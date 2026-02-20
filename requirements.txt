@@ -1,0 +1,7 @@
+flask
+feedparser
+scikit-learn
+ollama
+numpy
+apscheduler
+beautifulsoup4
