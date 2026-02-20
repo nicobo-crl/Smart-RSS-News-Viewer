@@ -13,6 +13,7 @@ import threading
 import time
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # --- !! DANGER ZONE: UNSECURE MODE !! ---
 if hasattr(ssl, '_create_unverified_context'):
@@ -109,9 +110,13 @@ def process_news_workflow():
             feed_urls = [line.strip() for line in f if line.strip()]
     except FileNotFoundError:
         print(f"CRITICAL: '{feeds_file}' not found.")
+        with data_lock:
+            global_store["is_processing"] = False
         return None
 
     if not feed_urls:
+        with data_lock:
+            global_store["is_processing"] = False
         return None
 
     # 1. Fetch
@@ -172,6 +177,8 @@ def process_news_workflow():
 
     if len(news_items) < 2:
         print("Not enough news items to cluster.")
+        with data_lock:
+            global_store["is_processing"] = False
         return []
 
     # 3. Embed (With Robust Error Handling)
@@ -195,6 +202,8 @@ def process_news_workflow():
 
     if not embeddings:
         print("No embeddings generated. Aborting.")
+        with data_lock:
+            global_store["is_processing"] = False
         return None
 
     embeddings = np.array(embeddings)
@@ -227,29 +236,43 @@ def process_news_workflow():
         })
     
     print(f"Update Complete. {len(output_data)} topics found.")
+    
+    with data_lock:
+        global_store["clusters"] = output_data
+        global_store["last_updated"] = datetime.datetime.now()
+        summary_cache.clear()
+        global_store["is_processing"] = False
+    
     return output_data
 
-def background_scheduler():
-    while True:
-        try:
-            new_data = process_news_workflow()
-            if new_data is not None:
-                with data_lock:
-                    global_store["clusters"] = new_data
-                    global_store["last_updated"] = datetime.datetime.now()
-                    summary_cache.clear()
-                    global_store["is_processing"] = False
-            else:
-                with data_lock:
-                    global_store["is_processing"] = False
-        except Exception as e:
-            print(f"Background worker crashed: {e}")
-            with data_lock:
-                global_store["is_processing"] = False
-        time.sleep(UPDATE_INTERVAL_SECONDS)
+# --- APScheduler Setup ---
+scheduler = BackgroundScheduler()
 
-t = threading.Thread(target=background_scheduler, daemon=True)
-t.start()
+def scheduled_update():
+    """Wrapper function for scheduled updates with error handling"""
+    try:
+        process_news_workflow()
+    except Exception as e:
+        print(f"Scheduled update failed: {e}")
+        with data_lock:
+            global_store["is_processing"] = False
+
+# Add job to run every hour
+scheduler.add_job(
+    func=scheduled_update,
+    trigger="interval",
+    seconds=UPDATE_INTERVAL_SECONDS,
+    id="news_update",
+    replace_existing=True
+)
+
+# Start the scheduler
+scheduler.start()
+print(f"Scheduler started. Updates every {UPDATE_INTERVAL_SECONDS} seconds.")
+
+# Run initial update on startup in background thread
+initial_thread = threading.Thread(target=process_news_workflow, daemon=True)
+initial_thread.start()
 
 # --- Routes ---
 
@@ -305,6 +328,12 @@ def summarize_cluster():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.teardown_appcontext
+def shutdown_scheduler(exception=None):
+    """Gracefully shutdown scheduler on app exit"""
+    if scheduler.running:
+        scheduler.shutdown()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=4000, debug=True)
