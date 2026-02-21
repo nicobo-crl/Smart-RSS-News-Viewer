@@ -95,6 +95,28 @@ If you prefer to run this directly on your host machine (Mac/Windows/Linux):
     ```
 
 ---
+
+## Monitoring & Troubleshooting
+
+### Check Background Updates
+The application logs its progress to the console. You can monitor the background worker by checking the Docker logs:
+
+```bash
+docker-compose logs -f news-app
+```
+
+You should see messages like:
+- `[timestamp] Starting Background Update...`
+- `Embedding X articles...`
+- `Update Complete. X topics found.`
+
+### Manual Refresh
+If you want to force an update immediately:
+1.  **Restart the Container**: `docker-compose restart news-app`
+2.  **Wait for the Page**: The first user to visit after a restart will see the "Initializing System" screen while the first batch is processed.
+
+---
+
 ## License
 
 This project is licensed under the MIT License.
