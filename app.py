@@ -1,5 +1,6 @@
 import feedparser
 import html
+import os
 from sklearn.cluster import AgglomerativeClustering
 from flask import Flask, render_template, request, jsonify
 import datetime
@@ -99,151 +100,149 @@ def extract_image_url(entry):
     return None
 
 def process_news_workflow():
-    print(f"\n[{datetime.datetime.now()}] Starting Background Update...")
-    
     with data_lock:
+        if global_store["is_processing"]:
+            print(f"[{datetime.datetime.now()}] Update already in progress. Skipping.")
+            return None
         global_store["is_processing"] = True
 
-    feeds_file = "feeds.txt"
     try:
-        with open(feeds_file, "r") as f:
-            feed_urls = [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        print(f"CRITICAL: '{feeds_file}' not found.")
-        with data_lock:
-            global_store["is_processing"] = False
-        return None
+        print(f"\n[{datetime.datetime.now()}] Starting Background Update...")
 
-    if not feed_urls:
-        with data_lock:
-            global_store["is_processing"] = False
-        return None
-
-    # 1. Fetch
-    USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    cutoff_date = datetime.datetime.utcnow() - timedelta(days=7)
-    all_entries = []
-
-    for url in feed_urls:
+        feeds_file = "feeds.txt"
         try:
-            feed = feedparser.parse(url, agent=USER_AGENT)
-            if feed.entries:
-                all_entries.extend(feed.entries)
-        except Exception as e:
-            print(f"Error fetching {url}: {e}")
+            with open(feeds_file, "r") as f:
+                feed_urls = [line.strip() for line in f if line.strip()]
+        except FileNotFoundError:
+            print(f"CRITICAL: '{feeds_file}' not found.")
+            return None
 
-    # 2. Filter & Format
-    news_items = []
-    seen_links = set()
+        if not feed_urls:
+            return None
 
-    for entry in all_entries:
-        if entry.link in seen_links: continue
-        seen_links.add(entry.link)
+        # 1. Fetch
+        USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        cutoff_date = datetime.datetime.utcnow() - timedelta(days=7)
+        all_entries = []
 
-        if hasattr(entry, 'published_parsed') and entry.published_parsed:
+        for url in feed_urls:
             try:
-                article_date = datetime.datetime(*entry.published_parsed[:6])
-                if article_date < cutoff_date: continue
-            except: continue
-        else:
-            continue 
+                feed = feedparser.parse(url, agent=USER_AGENT)
+                if feed.entries:
+                    all_entries.extend(feed.entries)
+            except Exception as e:
+                print(f"Error fetching {url}: {e}")
 
-        summary_text = ""
-        if hasattr(entry, 'summary') and entry.summary: summary_text = entry.summary
-        elif hasattr(entry, 'description') and entry.description: summary_text = entry.description
+        # 2. Filter & Format
+        news_items = []
+        seen_links = set()
+
+        for entry in all_entries:
+            if entry.link in seen_links: continue
+            seen_links.add(entry.link)
+
+            if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                try:
+                    article_date = datetime.datetime(*entry.published_parsed[:6])
+                    if article_date < cutoff_date: continue
+                except: continue
+            else:
+                continue
+
+            summary_text = ""
+            if hasattr(entry, 'summary') and entry.summary: summary_text = entry.summary
+            elif hasattr(entry, 'description') and entry.description: summary_text = entry.description
+
+            # Strip HTML tags and unescape entities
+            summary = strip_html(html.unescape(summary_text))
+            title = strip_html(html.unescape(entry.title))
+
+            if not summary: continue
+
+            image_url = extract_image_url(entry)
+            source_name = "Unknown"
+            if hasattr(entry, 'source') and hasattr(entry.source, 'title'):
+                 source_name = entry.source.title
+            elif 'link' in entry:
+                source_name = urlparse(entry.link).netloc.replace('www.', '')
+
+            news_items.append({
+                "title": title,
+                "link": entry.link,
+                "summary": summary,
+                "image_url": image_url,
+                "date": article_date.strftime('%d. %B %Y, %H:%M Uhr'),
+                "source": source_name,
+                "favicon": get_favicon(entry.link)
+            })
+
+        if len(news_items) < 2:
+            print("Not enough news items to cluster.")
+            return []
+
+        # 3. Embed (With Robust Error Handling)
+        print(f"Embedding {len(news_items)} articles...")
         
-        # Strip HTML tags and unescape entities
-        summary = strip_html(html.unescape(summary_text))
-        title = strip_html(html.unescape(entry.title))
-        
-        if not summary: continue
+        valid_items = []
+        embeddings = []
 
-        image_url = extract_image_url(entry)
-        source_name = "Unknown"
-        if hasattr(entry, 'source') and hasattr(entry.source, 'title'):
-             source_name = entry.source.title
-        elif 'link' in entry:
-            source_name = urlparse(entry.link).netloc.replace('www.', '')
+        for item in news_items:
+            text = f"{item['title']}. {item['summary']}"
+            # CRITICAL FIX: Reduced from 4000 to 1500 to fit context window
+            clean_text = text[:1500]
 
-        news_items.append({
-            "title": title,
-            "link": entry.link,
-            "summary": summary,
-            "image_url": image_url,
-            "date": article_date.strftime('%d. %B %Y, %H:%M Uhr'),
-            "source": source_name,
-            "favicon": get_favicon(entry.link)
-        })
+            try:
+                response = ollama.embeddings(model=OLLAMA_EMBEDDING_MODEL, prompt=clean_text)
+                embeddings.append(response["embedding"])
+                valid_items.append(item) # Only keep items that succeeded
+            except Exception as e:
+                print(f"Warning: Failed to embed '{item['title']}': {e}")
+                continue
 
-    if len(news_items) < 2:
-        print("Not enough news items to cluster.")
+        if not embeddings:
+            print("No embeddings generated. Aborting.")
+            return None
+
+        embeddings = np.array(embeddings)
+        print(f"Successfully embedded {len(valid_items)} articles.")
+
+        # 4. Cluster
+        print("Clustering...")
+        clustering_model = AgglomerativeClustering(
+            n_clusters=None,
+            metric='cosine',
+            linkage='complete',
+            distance_threshold=0.35
+        )
+        cluster_assignments = clustering_model.fit_predict(embeddings)
+
+        clustered_news = {}
+        for index, cluster_id in enumerate(cluster_assignments):
+            clustered_news.setdefault(cluster_id, []).append(valid_items[index])
+
+        sorted_clusters = sorted(clustered_news.values(), key=len, reverse=True)
+
+        output_data = []
+        for i, cluster_items in enumerate(sorted_clusters):
+            unique_favicons = list(set([item['favicon'] for item in cluster_items if item['favicon']]))
+            output_data.append({
+                "name": f"Topic {i+1}",
+                "count": len(cluster_items),
+                "articles": cluster_items,
+                "favicons": unique_favicons[:6]
+            })
+
+        print(f"Update Complete. {len(output_data)} topics found.")
+
+        with data_lock:
+            global_store["clusters"] = output_data
+            global_store["last_updated"] = datetime.datetime.now()
+            summary_cache.clear()
+
+        return output_data
+    finally:
         with data_lock:
             global_store["is_processing"] = False
-        return []
-
-    # 3. Embed (With Robust Error Handling)
-    print(f"Embedding {len(news_items)} articles...")
-    
-    valid_items = []
-    embeddings = []
-    
-    for item in news_items:
-        text = f"{item['title']}. {item['summary']}"
-        # CRITICAL FIX: Reduced from 4000 to 1500 to fit context window
-        clean_text = text[:1500] 
-        
-        try:
-            response = ollama.embeddings(model=OLLAMA_EMBEDDING_MODEL, prompt=clean_text)
-            embeddings.append(response["embedding"])
-            valid_items.append(item) # Only keep items that succeeded
-        except Exception as e:
-            print(f"Warning: Failed to embed '{item['title']}': {e}")
-            continue
-
-    if not embeddings:
-        print("No embeddings generated. Aborting.")
-        with data_lock:
-            global_store["is_processing"] = False
-        return None
-
-    embeddings = np.array(embeddings)
-    print(f"Successfully embedded {len(valid_items)} articles.")
-
-    # 4. Cluster
-    print("Clustering...")
-    clustering_model = AgglomerativeClustering(
-        n_clusters=None, 
-        metric='cosine', 
-        linkage='complete', 
-        distance_threshold=0.35 
-    )
-    cluster_assignments = clustering_model.fit_predict(embeddings)
-
-    clustered_news = {}
-    for index, cluster_id in enumerate(cluster_assignments):
-        clustered_news.setdefault(cluster_id, []).append(valid_items[index])
-
-    sorted_clusters = sorted(clustered_news.values(), key=len, reverse=True)
-    
-    output_data = []
-    for i, cluster_items in enumerate(sorted_clusters):
-        unique_favicons = list(set([item['favicon'] for item in cluster_items if item['favicon']]))
-        output_data.append({
-            "name": f"Topic {i+1}",
-            "count": len(cluster_items),
-            "articles": cluster_items,
-            "favicons": unique_favicons[:6] 
-        })
-    
-    print(f"Update Complete. {len(output_data)} topics found.")
-    
-    with data_lock:
-        global_store["clusters"] = output_data
-        global_store["last_updated"] = datetime.datetime.now()
-        summary_cache.clear()
-        global_store["is_processing"] = False
-    
-    return output_data
 
 # --- APScheduler Setup ---
 scheduler = BackgroundScheduler()
@@ -266,13 +265,15 @@ scheduler.add_job(
     replace_existing=True
 )
 
-# Start the scheduler
-scheduler.start()
-print(f"Scheduler started. Updates every {UPDATE_INTERVAL_SECONDS} seconds.")
+# Start the scheduler and initial update
+if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    # Start the scheduler
+    scheduler.start()
+    print(f"Scheduler started. Updates every {UPDATE_INTERVAL_SECONDS} seconds.")
 
-# Run initial update on startup in background thread
-initial_thread = threading.Thread(target=process_news_workflow, daemon=True)
-initial_thread.start()
+    # Run initial update on startup in background thread
+    initial_thread = threading.Thread(target=process_news_workflow, daemon=True)
+    initial_thread.start()
 
 # --- Routes ---
 
@@ -328,12 +329,6 @@ def summarize_cluster():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.teardown_appcontext
-def shutdown_scheduler(exception=None):
-    """Gracefully shutdown scheduler on app exit"""
-    if scheduler.running:
-        scheduler.shutdown()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=4000, debug=True)
