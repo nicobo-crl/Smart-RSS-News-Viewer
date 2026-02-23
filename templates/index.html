@@ -6,45 +6,90 @@
 <title>AI News Reader</title>
 <style>
 :root {
+/* Dark Mode (Default) */
 --bg-color: #000000;
 --text-color: #ffffff;
 --secondary-text-color: #bbbbbb;
 --border-color: #333333;
 --highlight-border-color: #555555;
+--card-bg: #0a0a0a;
 --accent-color: #fff;
-}
-body {
-font-family: 'Consolas', 'Menlo', 'Courier New', Courier, monospace;
-line-height: 1.6;
-background-color: var(--bg-color);
-color: var(--text-color);
-margin: 0;
-padding: 0;
-}
-.container {
-width: 100%;
-max-width: 900px;
-margin: 0 auto;
-padding: 0;
-}
-h1 {
-text-align: center;
-border-bottom: 1px solid var(--border-color);
-padding: 30px 0;
-margin: 0;
-font-weight: normal;
-letter-spacing: 2px;
-text-transform: uppercase;
-}
-.ai-annotation {
-text-align: center;
-font-size: 0.75em;
-color: #666;
-margin: 15px 20px 40px 20px;
-font-style: italic;
+--meta-color: #666;
+--image-bg: #111;
 }
 
-/* --- Cluster Block --- */
+[data-theme="light"] {
+        /* Light Mode Overrides */
+        --bg-color: #ffffff;
+        --text-color: #1a1a1a;
+        --secondary-text-color: #555555;
+        --border-color: #e0e0e0;
+        --highlight-border-color: #d1d1d1;
+        --card-bg: #f8f9fa;
+        --accent-color: #000;
+        --meta-color: #666;
+        --image-bg: #eee;
+    }
+
+    body {
+        font-family: 'Consolas', 'Menlo', 'Courier New', Courier, monospace;
+        line-height: 1.6;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        margin: 0;
+        padding: 0;
+        transition: background-color 0.3s, color 0.3s;
+    }
+    .container {
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0;
+        position: relative;
+    }
+
+    /* --- Header & Controls --- */
+    .header-wrapper {
+        position: relative;
+        padding: 30px 0;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 20px;
+    }
+    h1 { 
+        text-align: center; 
+        margin: 0;
+        font-weight: normal;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    .theme-toggle {
+        position: absolute;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        background: none;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 0.8em;
+        transition: all 0.2s;
+    }
+    .theme-toggle:hover {
+        border-color: var(--text-color);
+    }
+
+    .ai-annotation {
+        text-align: center;
+        font-size: 0.75em;
+        color: var(--meta-color);
+        margin: 15px 20px 40px 20px;
+        font-style: italic;
+    }
+
+    /* --- Cluster Block --- */
     .cluster-block {
         margin-bottom: 60px;
         padding: 0 20px;
@@ -54,11 +99,12 @@ font-style: italic;
 
     /* --- Summary Box --- */
     .cluster-summary {
-        background-color: #0a0a0a;
+        background-color: var(--card-bg);
         border: 1px solid var(--highlight-border-color);
         padding: 25px;
         border-radius: 6px;
         position: relative;
+        transition: background-color 0.3s, border-color 0.3s;
     }
     .summary-header {
         display: flex;
@@ -89,7 +135,7 @@ font-style: italic;
     .favicon-circle {
         width: 18px; height: 18px; 
         border-radius: 50%; 
-        border: 2px solid #555;
+        border: 2px solid var(--highlight-border-color);
         margin-left: -6px; 
         background-color: #ffffff; 
         object-fit: contain;
@@ -100,13 +146,14 @@ font-style: italic;
     .summary-content {
         font-size: 1.1em;
         line-height: 1.8;
-        color: #ddd;
+        color: var(--text-color);
+        opacity: 0.9;
     }
     .summary-content .loading-spinner {
         display: inline-block;
         width: 12px; height: 12px;
-        border: 2px solid #555;
-        border-top: 2px solid #fff;
+        border: 2px solid var(--highlight-border-color);
+        border-top: 2px solid var(--text-color);
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin-right: 10px;
@@ -118,7 +165,7 @@ font-style: italic;
     .toggle-button {
         background: none;
         border: none;
-        color: #666;
+        color: var(--meta-color);
         cursor: pointer;
         font-family: inherit;
         font-size: 0.85em;
@@ -128,7 +175,7 @@ font-style: italic;
         text-decoration-thickness: 1px;
         text-underline-offset: 4px;
     }
-    .toggle-button:hover { color: #fff; }
+    .toggle-button:hover { color: var(--text-color); }
 
     /* --- Articles List --- */
     .articles-container {
@@ -147,10 +194,10 @@ font-style: italic;
         max-height: 400px;
         object-fit: cover;
         border-radius: 6px;
-        border: 1px solid #333;
+        border: 1px solid var(--border-color);
         margin-bottom: 15px;
         display: block;
-        background-color: #111;
+        background-color: var(--image-bg);
     }
 
     .article h3 {
@@ -161,21 +208,21 @@ font-style: italic;
     .article h3 a {
         color: var(--text-color);
         text-decoration: none;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid var(--border-color);
         transition: border-color 0.2s;
     }
-    .article h3 a:hover { border-color: #fff; }
+    .article h3 a:hover { border-color: var(--text-color); }
     
     .article-meta {
         font-size: 0.75em;
-        color: #666;
+        color: var(--meta-color);
         margin-bottom: 10px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     .article p {
         font-size: 0.9em;
-        color: #aaa;
+        color: var(--secondary-text-color);
         margin: 0;
     }
 
@@ -184,19 +231,19 @@ font-style: italic;
         text-align: center;
         padding: 40px;
         font-size: 0.8em;
-        color: #444;
+        color: var(--meta-color);
         border-top: 1px solid var(--border-color);
         margin-top: 40px;
     }
     .footer a {
-        color: #666;
+        color: var(--meta-color);
         text-decoration: none;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid var(--border-color);
         transition: color 0.2s, border-color 0.2s;
     }
     .footer a:hover {
-        color: #fff;
-        border-color: #fff;
+        color: var(--text-color);
+        border-color: var(--text-color);
     }
     .ai-info {
         margin-top: 10px;
@@ -210,13 +257,16 @@ font-style: italic;
 </head>
 <body>
 <div class="container">
+<div class="header-wrapper">
 <h1>News Feed</h1>
-<p class="ai-annotation">
-Summaries generated by AI for trending topics.
-</p>
-code Code
+<button id="theme-toggle" class="theme-toggle" title="Switch Theme">☀/☾</button>
+</div>
 
-<!-- Hidden Data Block -->
+<p class="ai-annotation">
+        Summaries generated by AI for trending topics.
+    </p>
+
+    <!-- Hidden Data Block -->
     <script id="cluster-data" type="application/json">
         {{ clusters | tojson | safe }}
     </script>
@@ -296,6 +346,31 @@ code Code
 </div>
 
 <script>
+    // --- Theme Switcher Logic ---
+    const toggleBtn = document.getElementById('theme-toggle');
+    const root = document.documentElement;
+    
+    // 1. Check Local Storage or System Preference
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+
+    if (savedTheme) {
+        root.setAttribute('data-theme', savedTheme);
+    } else if (systemPrefersLight) {
+        root.setAttribute('data-theme', 'light');
+    }
+
+    // 2. Toggle Handler
+    toggleBtn.addEventListener('click', () => {
+        const currentTheme = root.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        root.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+
+
+    // --- Existing News Logic ---
     document.addEventListener('DOMContentLoaded', () => {
         const clusterDataElement = document.getElementById('cluster-data');
         if (!clusterDataElement) return;
@@ -304,7 +379,7 @@ code Code
             const clusters = JSON.parse(clusterDataElement.textContent);
             if (clusters) {
                 clusters.forEach((cluster, index) => {
-                    // Only attempt to fetch if valid (count > 1)
+                    // Only fetch AI summary if the cluster has more than 1 article
                     if (cluster.count > 1) {
                         fetchSummaryForCluster(index, cluster.articles);
                     }
@@ -316,8 +391,6 @@ code Code
     });
 
     async function fetchSummaryForCluster(clusterIndex, articles) {
-        // Note: because we filter via HTML logic, some IDs will not exist in the DOM.
-        // The check below (if !placeholder) prevents JS errors for hidden clusters.
         const placeholder = document.getElementById(`summary-${clusterIndex}`);
         if (!placeholder) return;
         
@@ -335,7 +408,7 @@ code Code
             
         } catch (error) {
             console.error(`Error fetching summary for cluster ${clusterIndex}:`, error);
-            placeholder.innerHTML = '<span style="color:#666;">Summary unavailable.</span>';
+            placeholder.innerHTML = '<span style="color:var(--meta-color);">Summary unavailable.</span>';
         }
     }
 
