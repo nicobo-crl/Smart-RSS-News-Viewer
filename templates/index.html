@@ -315,7 +315,8 @@
                                     {{ item.source }} &bull; {{ item.date }}
                                 </div>
                                 
-                                <p>{{ item.summary }}</p>
+                                <!-- ADDED | striptags to remove visible HTML -->
+                                <p>{{ item.summary | striptags }}</p>
                             </div>
                         {% endfor %}
                     </div>
