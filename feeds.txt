@@ -1,5 +1,11 @@
-# --- World News & Politics ---
 http://feeds.bbci.co.uk/news/world/rss.xml
 https://www.theguardian.com/world/rss
 https://rss.nytimes.com/services/xml/rss/nyt/World.xml
 https://www.aljazeera.com/xml/rss/all.xml
+https://www.vox.com/rss/world/index.xml
+https://www.cnbc.com/id/100727362/device/rss/rss.html
+https://rss.nytimes.com/services/xml/rss/nyt/Business.xml
+https://www.theguardian.com/uk/business/rss
+https://www.theatlantic.com/feed/all/
+https://www.theguardian.com/uk/culture/rss
+https://rss.dw.com/rdf/rss-en-top
