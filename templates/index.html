@@ -1,232 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI News Reader</title>
-    <style>
-        :root {
-            --bg-color: #000000;
-            --text-color: #ffffff;
-            --secondary-text-color: #bbbbbb;
-            --border-color: #333333;
-            --highlight-border-color: #555555;
-            --accent-color: #fff;
-        }
-        body {
-            font-family: 'Consolas', 'Menlo', 'Courier New', Courier, monospace;
-            line-height: 1.6;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            width: 100%;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 0;
-        }
-        h1 { 
-            text-align: center; 
-            border-bottom: 1px solid var(--border-color); 
-            padding: 30px 0;
-            margin: 0;
-            font-weight: normal;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        .ai-annotation {
-            text-align: center;
-            font-size: 0.75em;
-            color: #666;
-            margin: 15px 20px 40px 20px;
-            font-style: italic;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI News Reader</title>
+<style>
+:root {
+--bg-color: #000000;
+--text-color: #ffffff;
+--secondary-text-color: #bbbbbb;
+--border-color: #333333;
+--highlight-border-color: #555555;
+--accent-color: #fff;
+}
+body {
+font-family: 'Consolas', 'Menlo', 'Courier New', Courier, monospace;
+line-height: 1.6;
+background-color: var(--bg-color);
+color: var(--text-color);
+margin: 0;
+padding: 0;
+}
+.container {
+width: 100%;
+max-width: 900px;
+margin: 0 auto;
+padding: 0;
+}
+h1 {
+text-align: center;
+border-bottom: 1px solid var(--border-color);
+padding: 30px 0;
+margin: 0;
+font-weight: normal;
+letter-spacing: 2px;
+text-transform: uppercase;
+}
+.ai-annotation {
+text-align: center;
+font-size: 0.75em;
+color: #666;
+margin: 15px 20px 40px 20px;
+font-style: italic;
+}
 
-        /* --- Cluster Block --- */
-        .cluster-block {
-            margin-bottom: 60px;
-            padding: 0 20px;
-            animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* --- Cluster Block --- */
+    .cluster-block {
+        margin-bottom: 60px;
+        padding: 0 20px;
+        animation: fadeIn 0.5s ease-in;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* --- Summary Box --- */
-        .cluster-summary {
-            background-color: #0a0a0a;
-            border: 1px solid var(--highlight-border-color);
-            padding: 25px;
-            border-radius: 6px;
-            position: relative;
-        }
-        .summary-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            font-size: 0.85em;
-        }
-        .rainbow-text {
-            background: linear-gradient(to right, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-            background-size: 300% auto;
-            animation: rainbow 5s linear infinite;
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-right: 15px;
-        }
-        @keyframes rainbow { 
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
+    /* --- Summary Box --- */
+    .cluster-summary {
+        background-color: #0a0a0a;
+        border: 1px solid var(--highlight-border-color);
+        padding: 25px;
+        border-radius: 6px;
+        position: relative;
+    }
+    .summary-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        font-size: 0.85em;
+    }
+    .rainbow-text {
+        background: linear-gradient(to right, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+        background-size: 300% auto;
+        animation: rainbow 5s linear infinite;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-right: 15px;
+    }
+    @keyframes rainbow { 
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
 
-        /* Favicons */
-        .favicon-list { display: flex; align-items: center; }
-        .favicon-circle {
-            width: 18px; height: 18px; 
-            border-radius: 50%; 
-            border: 2px solid #555;
-            margin-left: -6px; 
-            background-color: #ffffff; 
-            object-fit: contain;
-            padding: 1px;
-        }
-        .favicon-circle:first-child { margin-left: 0; }
+    /* Favicons */
+    .favicon-list { display: flex; align-items: center; }
+    .favicon-circle {
+        width: 18px; height: 18px; 
+        border-radius: 50%; 
+        border: 2px solid #555;
+        margin-left: -6px; 
+        background-color: #ffffff; 
+        object-fit: contain;
+        padding: 1px;
+    }
+    .favicon-circle:first-child { margin-left: 0; }
 
-        .summary-content {
-            font-size: 1.1em;
-            line-height: 1.8;
-            color: #ddd;
-        }
-        .summary-content .loading-spinner {
-            display: inline-block;
-            width: 12px; height: 12px;
-            border: 2px solid #555;
-            border-top: 2px solid #fff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .summary-content {
+        font-size: 1.1em;
+        line-height: 1.8;
+        color: #ddd;
+    }
+    .summary-content .loading-spinner {
+        display: inline-block;
+        width: 12px; height: 12px;
+        border: 2px solid #555;
+        border-top: 2px solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- Toggle Button --- */
-        .toggle-wrapper { margin-top: 15px; }
-        .toggle-button {
-            background: none;
-            border: none;
-            color: #666;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 0.85em;
-            padding: 5px 0;
-            transition: color 0.2s;
-            text-decoration: underline;
-            text-decoration-thickness: 1px;
-            text-underline-offset: 4px;
-        }
-        .toggle-button:hover { color: #fff; }
+    /* --- Toggle Button --- */
+    .toggle-wrapper { margin-top: 15px; }
+    .toggle-button {
+        background: none;
+        border: none;
+        color: #666;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.85em;
+        padding: 5px 0;
+        transition: color 0.2s;
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 4px;
+    }
+    .toggle-button:hover { color: #fff; }
 
-        /* --- Articles List --- */
-        .articles-container {
-            margin-top: 20px;
-            border-left: 1px solid var(--border-color);
-            padding-left: 20px;
-            margin-left: 10px;
-            display: none; 
-        }
-        .article {
-            margin-bottom: 30px;
-        }
-        
-        /* Updated Image Styling */
-        .article-image {
-            width: 100%;
-            max-height: 400px; /* Prevents extremely tall images */
-            object-fit: cover; /* Crops nicely */
-            border-radius: 6px;
-            border: 1px solid #333;
-            margin-bottom: 15px;
-            display: block;
-            background-color: #111;
-        }
+    /* --- Articles List --- */
+    .articles-container {
+        margin-top: 20px;
+        border-left: 1px solid var(--border-color);
+        padding-left: 20px;
+        margin-left: 10px;
+        display: none; 
+    }
+    .article {
+        margin-bottom: 30px;
+    }
+    
+    .article-image {
+        width: 100%;
+        max-height: 400px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #333;
+        margin-bottom: 15px;
+        display: block;
+        background-color: #111;
+    }
 
-        .article h3 {
-            margin: 0 0 5px 0;
-            font-size: 1em;
-            font-weight: bold;
-        }
-        .article h3 a {
-            color: var(--text-color);
-            text-decoration: none;
-            border-bottom: 1px solid #333;
-            transition: border-color 0.2s;
-        }
-        .article h3 a:hover { border-color: #fff; }
-        
-        .article-meta {
-            font-size: 0.75em;
-            color: #666;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .article p {
-            font-size: 0.9em;
-            color: #aaa;
-            margin: 0;
-        }
+    .article h3 {
+        margin: 0 0 5px 0;
+        font-size: 1em;
+        font-weight: bold;
+    }
+    .article h3 a {
+        color: var(--text-color);
+        text-decoration: none;
+        border-bottom: 1px solid #333;
+        transition: border-color 0.2s;
+    }
+    .article h3 a:hover { border-color: #fff; }
+    
+    .article-meta {
+        font-size: 0.75em;
+        color: #666;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .article p {
+        font-size: 0.9em;
+        color: #aaa;
+        margin: 0;
+    }
 
-        /* --- Footer --- */
-        .footer {
-            text-align: center;
-            padding: 40px;
-            font-size: 0.8em;
-            color: #444;
-            border-top: 1px solid var(--border-color);
-            margin-top: 40px;
-        }
-        .footer a {
-            color: #666;
-            text-decoration: none;
-            border-bottom: 1px solid #333;
-            transition: color 0.2s, border-color 0.2s;
-        }
-        .footer a:hover {
-            color: #fff;
-            border-color: #fff;
-        }
-        .ai-info {
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
-        .github-link {
-            margin-top: 15px;
-        }
-    </style>
+    /* --- Footer --- */
+    .footer {
+        text-align: center;
+        padding: 40px;
+        font-size: 0.8em;
+        color: #444;
+        border-top: 1px solid var(--border-color);
+        margin-top: 40px;
+    }
+    .footer a {
+        color: #666;
+        text-decoration: none;
+        border-bottom: 1px solid #333;
+        transition: color 0.2s, border-color 0.2s;
+    }
+    .footer a:hover {
+        color: #fff;
+        border-color: #fff;
+    }
+    .ai-info {
+        margin-top: 10px;
+        font-size: 0.9em;
+    }
+    .github-link {
+        margin-top: 15px;
+    }
+</style>
+
 </head>
 <body>
-    <div class="container">
-        <h1>News Feed</h1>
-        <p class="ai-annotation">
-            Summaries generated by AI. Information may be approximate.
-        </p>
+<div class="container">
+<h1>News Feed</h1>
+<p class="ai-annotation">
+Summaries generated by AI for trending topics.
+</p>
+code Code
 
-        <!-- Hidden Data Block -->
-        <script id="cluster-data" type="application/json">
-            {{ clusters | tojson | safe }}
-        </script>
+<!-- Hidden Data Block -->
+    <script id="cluster-data" type="application/json">
+        {{ clusters | tojson | safe }}
+    </script>
 
-        {% if clusters %}
-            {% for cluster in clusters %}
+    {% if clusters %}
+        {% for cluster in clusters %}
+            <!-- FILTER: Only show topics with more than 1 article -->
+            {% if cluster.count > 1 %}
                 <div class="cluster-block">
                     <!-- AI Summary Box -->
                     <div class="cluster-summary">
                         <div class="summary-header">
-                            <span class="rainbow-text">AI Summary</span>
+                            <span class="rainbow-text">AI Analysis</span>
                             <div class="favicon-list">
                                 {% for favicon in cluster.favicons %}
                                     <img src="{{ favicon }}" class="favicon-circle" alt="" onerror="this.style.display='none'">
@@ -251,7 +254,6 @@
                     <div class="articles-container" id="articles-{{ loop.index0 }}">
                         {% for item in cluster.articles %}
                             <div class="article">
-                                <!-- Image Display Logic -->
                                 {% if item.image_url %}
                                     <img src="{{ item.image_url }}" alt="News Image" class="article-image" onerror="this.style.display='none'">
                                 {% endif %}
@@ -268,81 +270,88 @@
                         {% endfor %}
                     </div>
                 </div>
-            {% endfor %}
-        {% endif %}
-
-        <div class="footer">
-            {% if updated_time %}
-                Last updated: {{ updated_time.strftime('%H:%M:%S') }} | 
-                Auto-refreshes every hour
-            {% else %}
-                Live
             {% endif %}
-            
-            <div class="ai-info">
-                Powered by <strong>mxbai-embed-large</strong> (clustering) & 
-                <strong>gemma3:4b</strong> (summarization) via Ollama
-            </div>
-            
-            <div class="github-link">
-                <a href="https://github.com/nicobo-crl/Smart-RSS-News-Viewer" target="_blank" rel="noopener noreferrer">
-                    View on GitHub →
-                </a>
-            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="footer">
+        {% if updated_time %}
+            Last updated: {{ updated_time.strftime('%H:%M:%S') }} | 
+            Auto-refreshes every hour
+        {% else %}
+            Live
+        {% endif %}
+        
+        <div class="ai-info">
+            Powered by <strong>mxbai-embed-large</strong> (clustering) & 
+            <strong>gemma3:4b</strong> (summarization) via Ollama
+        </div>
+        
+        <div class="github-link">
+            <a href="https://github.com/nicobo-crl/Smart-RSS-News-Viewer" target="_blank" rel="noopener noreferrer">
+                View on GitHub →
+            </a>
         </div>
     </div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const clusterDataElement = document.getElementById('cluster-data');
-            if (!clusterDataElement) return;
-            
-            try {
-                const clusters = JSON.parse(clusterDataElement.textContent);
-                if (clusters) {
-                    clusters.forEach((cluster, index) => {
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const clusterDataElement = document.getElementById('cluster-data');
+        if (!clusterDataElement) return;
+        
+        try {
+            const clusters = JSON.parse(clusterDataElement.textContent);
+            if (clusters) {
+                clusters.forEach((cluster, index) => {
+                    // Only attempt to fetch if valid (count > 1)
+                    if (cluster.count > 1) {
                         fetchSummaryForCluster(index, cluster.articles);
-                    });
-                }
-            } catch (e) {
-                console.error("Error parsing cluster data", e);
-            }
-        });
-
-        async function fetchSummaryForCluster(clusterIndex, articles) {
-            const placeholder = document.getElementById(`summary-${clusterIndex}`);
-            if (!placeholder) return;
-            
-            try {
-                const response = await fetch('/summarize', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ articles: articles })
+                    }
                 });
-                
-                if (!response.ok) throw new Error(`Server error: ${response.status}`);
-                
-                const data = await response.json();
-                placeholder.innerHTML = data.summary.replace(/\n/g, '<br>');
-                
-            } catch (error) {
-                console.error(`Error fetching summary for cluster ${clusterIndex}:`, error);
-                placeholder.innerHTML = '<span style="color:#666;">Summary unavailable.</span>';
             }
+        } catch (e) {
+            console.error("Error parsing cluster data", e);
         }
+    });
 
-        function toggleArticles(containerId, buttonElement, count) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-
-            if (container.style.display === 'block') {
-                container.style.display = 'none';
-                buttonElement.textContent = `[+] Show ${count} Source Article${count > 1 ? 's' : ''}`;
-            } else {
-                container.style.display = 'block';
-                buttonElement.textContent = `[-] Hide Sources`;
-            }
+    async function fetchSummaryForCluster(clusterIndex, articles) {
+        // Note: because we filter via HTML logic, some IDs will not exist in the DOM.
+        // The check below (if !placeholder) prevents JS errors for hidden clusters.
+        const placeholder = document.getElementById(`summary-${clusterIndex}`);
+        if (!placeholder) return;
+        
+        try {
+            const response = await fetch('/summarize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ articles: articles })
+            });
+            
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            
+            const data = await response.json();
+            placeholder.innerHTML = data.summary.replace(/\n/g, '<br>');
+            
+        } catch (error) {
+            console.error(`Error fetching summary for cluster ${clusterIndex}:`, error);
+            placeholder.innerHTML = '<span style="color:#666;">Summary unavailable.</span>';
         }
-    </script>
+    }
+
+    function toggleArticles(containerId, buttonElement, count) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        if (container.style.display === 'block') {
+            container.style.display = 'none';
+            buttonElement.textContent = `[+] Show ${count} Source Article${count > 1 ? 's' : ''}`;
+        } else {
+            container.style.display = 'block';
+            buttonElement.textContent = `[-] Hide Sources`;
+        }
+    }
+</script>
+
 </body>
 </html>
