@@ -220,7 +220,7 @@ def process_news_workflow():
         for index, cluster_id in enumerate(cluster_assignments):
             clustered_news.setdefault(cluster_id, []).append(valid_items[index])
 
-        sorted_clusters = sorted(clustered_news.values(), key=len, reverse=True)
+        sorted_clusters = [c for c in sorted(clustered_news.values(), key=len, reverse=True) if len(c) >= 2]
 
         output_data = []
         for i, cluster_items in enumerate(sorted_clusters):
